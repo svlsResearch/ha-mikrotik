@@ -1,0 +1,6 @@
+:global isMaster false
+:global haNetmaskBits
+:global haInterface
+/interface ethernet disable [find default-name!="$haInterface"]
+:execute "ha_setidentity"
+:do { :local k [/system script find name="on_backup"]; if ([:len $k] = 1) do={ /system script run $k } } on-error={ :put "on_backup failed" }

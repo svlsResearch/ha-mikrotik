@@ -6,6 +6,19 @@ Please do not test this on production routers. This should be tested in a lab se
 This was developed on the CCR1009-8g-1s-1s+ and is in use in our production environment. Proceed at your own risk, the code can potentionally wipe out 
 all of your configuration and files on your device.
 
+Extensive documentation is still needed. This is being delivered as a proof of concept.
+You will need to do a bit of code reading and testing to figure out how it works.
+
+# Issues
+The #1 issue is a race condition during the startup of the secondary after it gets an updated configuration. It needs to quickly disable all of the interfaces
+so that it doesn't end up taking traffic (MACs are cloned) from the active router. If you use spanning tree on your switches, it is likely that this
+will happen fast enough and the Layer2/3 won't have time to come up and cause issues. Test this very carefully, you will get very strange results if your ports
+start forwarding instantly from your upstream switch.
+
+# Concept
+Using a dedicated interface, VRRP, scripts, and backups, we can make a pair of Mikrotik routers highly available.
+Configuration and files are actively synchronized to the standby and the standby remains ready to takeover when the VRRP heartbeat fails.
+
 # Hardware originally developed for
 Pair of CCR1009-8g-1s-1s+
 RouterOS v6.33.5

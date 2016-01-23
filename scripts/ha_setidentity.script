@@ -1,0 +1,12 @@
+:global haIdentity
+:global isMaster
+:local sysIdentity [/system identity get name]
+:local haPos [:find $sysIdentity "_HA_" 0]
+if ($haPos > 0) do {
+   :set sysIdentity [:pick $sysIdentity 0 $haPos]
+}
+:if ($isMaster) do {
+   /system identity set name="$sysIdentity_HA_$haIdentity_ACTIVE"
+} else {
+   /system identity set name="$sysIdentity_HA_$haIdentity_STANDBY"
+}

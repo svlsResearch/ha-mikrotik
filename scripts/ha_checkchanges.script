@@ -1,0 +1,35 @@
+:if ([:len [/system script job find where script="ha_checkchanges"]] > 1) do={:error "already running checkchanges"; } 
+:global isMaster
+:global isStandbyInSync
+:global haPassword
+:global haAddressOther
+:global haCheckLastCheckTS  "$[/system clock get date] $[/system clock get time] $[/system clock get time-zone-name]"
+:global haCheckStandbyVer
+:global haCheckMasterVer
+:do {
+   :if ($isMaster) do {
+      /file print file=HA_get-version.txt; /file set [find name="HA_get-version.txt"] contents=":global haConfigVer\n[:put \"XXX \$haConfigVer YYYY\"]\n"
+         /tool fetch upload=yes src-path=HA_get-version.txt dst-path=HA_get-version.auto.rsc address=$haAddressOther user=ha password=$haPassword mode=ftp 
+         /file remove [find name="HA_standby-haConfigVer.txt"]
+         /tool fetch upload=no src-path=HA_get-version.auto.log dst-path=HA_standby-haConfigVer.txt address=$haAddressOther user=ha password=$haPassword mode=ftp 
+         :local haCheckStandbyVerTmp [/file get [find name="HA_standby-haConfigVer.txt"] contents]
+         :global haCheckStandbyVer [:pick $haCheckStandbyVerTmp ([:find $haCheckStandbyVerTmp "XXX "]+4) [:find $haCheckStandbyVerTmp " YYYY"]]
+         :global haMasterConfigVer
+         [/system script run [find name="ha_setconfigver"]]
+         :global haCheckMasterVer $haMasterConfigVer
+         /file remove [find name="HA_standby-haConfigVer.txt"]
+         :put "MASTER VERSION: ! $haCheckMasterVer !"
+         :put "STANDB VERSION: ! $haCheckStandbyVer !"
+         :if ($haCheckStandbyVer != $haCheckMasterVer) do {
+            :put "NEED TO PUSH"
+            :global isStandbyInSync false
+            /system script run [find name="ha_pushbackup"]
+         } else {
+            :global isStandbyInSync true
+            :put "GOOD"
+         }
+   }
+} on-error={
+   :put "GOT ERROR"
+   :global isStandbyInSync false
+}

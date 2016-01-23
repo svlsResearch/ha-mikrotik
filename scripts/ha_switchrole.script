@@ -1,0 +1,15 @@
+:global isMaster
+:if ($isMaster) do {
+   :put "I am master - switching role"
+   /system script run [find name="ha_pushbackup"]
+   :put "delaying 60"
+   /delay 60
+   :if ($isMaster && [/ping 169.254.23.3 count=1 interface=ether1 ttl=1] >= 1) do {
+      :put "REBOOTING MYSELF"
+      :execute "/system reboot"
+   } else {
+      :put "NOT REBOOTING MYSELF! SLAVE IS NOT UP OR I AM NOT MASTER!"
+   }
+} else {
+   :put "I am NOT master - nothing to do"
+}

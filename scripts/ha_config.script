@@ -1,0 +1,7 @@
+/system script run [find name="ha_config_base"]
+:global haNetwork "169.254.23.0"
+:global haNetmask "255.255.255.0"
+:global haNetmaskBits "24"
+:global haAddressA "169.254.23.1"
+:global haAddressB "169.254.23.2"
+:global haAddressVRRP "169.254.23.10"

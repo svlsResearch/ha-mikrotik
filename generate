@@ -1,0 +1,28 @@
+#!/bin/bash
+set -e -u
+version="$(cat VERSION)"
+code_checksum="$(cat scripts/*.script | openssl sha1 | awk '{print $2}')"
+ha_version="$version - $code_checksum"
+ha_password="$(egrep 'haMacA|haMacB' scripts/ha_config.script | awk '{print $3}' | cut -d '"' -f2 | openssl sha1 | awk '{print $2}')"
+(
+echo ":do {"
+cd scripts
+echo "/system script"
+   for i in *.script; do
+      script=$(echo "$i" | cut -d '.' -f1)
+      echo "remove [find name=${script}_new]"
+      echo -e -n "add name=${script}_new owner=admin policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive source=\""
+      cat "$i" | perl -p -e 's/\\/\\\\/g,s/\$/\\\$/g,s/\n/\\\n\t\\n/g,s/"/\\"/g'
+      echo '"'
+   done
+   for i in *.script; do
+      script=$(echo "$i" | cut -d '.' -f1)
+      echo "remove [find name=${script}_old]"
+      echo "remove [find name=${script}]"
+      echo "set name=${script} [find name=${script}_new]"
+   done
+   echo "/system script run [find name=ha_functions]"
+   echo "}"
+) | sed "s/%%%HA_VERSION%%%/$ha_version/gi" | sed "s/%%%HA_PASSWORD%%%/$ha_password/gi" > HA_init.rsc
+echo "Please upload HA_init.rsc to the master and run /import HA_init.rsc"
+echo 'You can then do $HAInstall'

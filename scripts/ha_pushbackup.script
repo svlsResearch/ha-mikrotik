@@ -1,0 +1,55 @@
+:if ([:len [/system script job find where script="ha_pushbackup"]] > 1) do={:error "already running pushbackup"; } 
+:global haPassword
+:global isMaster
+:global haAddressOther
+:if (!$isMaster) do {
+   :error "NOT MASTER"
+} else {
+   #Really? this is the only way to create directories?
+   :local mkdirCode "/ip smb shares\r\n:do { /ip smb shares add comment=HA_AUTO name=mkdir disabled=yes directory=/skins } on-error={}"
+   :foreach k in [/file find name~"^[^H][^A][^_]" and type="directory"] do={
+      :local dir [/file get $k name]
+      :set mkdirCode "$mkdirCode\r\n/ip smb shares set [find comment=HA_AUTO] directory=\"$dir\""
+   }
+   :set mkdirCode "$mkdirCode\r\n/ip smb shares remove [find comment=HA_AUTO]\r\n/file remove [find]"
+   #eh - good chance to keep files in sync, just delete everything, we will reupload. is this going to reduce life of nvram?
+   :set mkdirCode "/file remove [find name~\"^[^H][^A][^_]\" and type!=\"directory\"]\n"
+   /file print file=HA_mkdirs.txt
+   /file set [find name="HA_mkdirs.txt"] contents=$mkdirCode
+   /tool fetch upload=yes src-path=HA_mkdirs.txt dst-path=HA_mkdirs.auto.rsc address=$haAddressOther user=ha password=$haPassword mode=ftp 
+
+   :foreach k in [/file find name~"^[^H][^A][^_]" and type!="directory"] do={
+      :local xferfile [/file get $k name]
+      :put "Transferring: $xferfile"
+      :do {
+         /tool fetch upload=yes src-path=$xferfile dst-path=$xferfile address=$haAddressOther user=ha password=$haPassword mode=ftp
+      } on-error={
+         :put "Failed to transfer $xferfile"
+      }
+   }
+
+   :if ([:len [/file find name=HA_dsa]] <= 0) do={ 
+      /ip ssh export-host-key key-file-prefix="HA"
+   }
+
+   /tool fetch upload=yes src-path=HA_dsa dst-path=HA_dsa address=$haAddressOther user=ha password=$haPassword mode=ftp  
+   /tool fetch upload=yes src-path=HA_rsa dst-path=HA_rsa address=$haAddressOther user=ha password=$haPassword mode=ftp  
+
+
+   :global haMasterConfigVer
+   [/system script run [find name="ha_setconfigver"]]
+   /file print file=HA_run-after-hastartup.txt
+   /file set [find name=HA_run-after-hastartup.txt] contents=":global haConfigVer \"$haMasterConfigVer\""
+   /tool fetch upload=yes src-path=HA_run-after-hastartup.txt dst-path=HA_run-after-hastartup.rsc address=$haAddressOther user=ha password=$haPassword mode=ftp 
+
+   /export file=HA_b2s.rsc
+   /system backup save name=HA_b2s.backup password=p
+   /tool fetch upload=yes src-path=HA_b2s.rsc dst-path=HA_b2s.rsc address=$haAddressOther user=ha password=$haPassword mode=ftp  
+   /tool fetch upload=yes src-path=HA_b2s.backup dst-path=HA_b2s.backup address=$haAddressOther user=ha password=$haPassword mode=ftp  
+   /file print file=HA_restore-backup.rsc; /file set [find name="HA_restore-backup.rsc.txt"] contents="/system backup load name=HA_b2s.backup password=p"
+   :do {
+      /tool fetch upload=yes src-path=HA_restore-backup.rsc.txt dst-path=HA_restore-backup.auto.rsc address=$haAddressOther user=ha password=$haPassword mode=ftp 
+   } on-error={
+      :put "OK - status failed is OK from last fetch, standby is rebooting."
+   }
+}
