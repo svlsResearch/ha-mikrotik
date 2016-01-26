@@ -169,18 +169,19 @@ add name=ha_pushbackup_new owner=admin policy=ftp,reboot,read,write,policy,test,
 	\n   :error \"NOT MASTER\"\
 	\n} else {\
 	\n   #Really? this is the only way to create directories?\
-	\n   :local mkdirCode \"/ip smb shares\\r\\n:do { /ip smb shares add comment=HA_AUTO name=mkdir disabled=yes directory=/skins } on-error={}\"\
+	\n   :local mkdirCode \":do { /ip smb shares add comment=HA_AUTO name=mkdir disabled=yes directory=/skins } on-error={}\"\
 	\n   :foreach k in [/file find name~\"^[^H][^A][^_]\" and type=\"directory\"] do={\
 	\n      :local dir [/file get \$k name]\
 	\n      :set mkdirCode \"\$mkdirCode\\r\\n/ip smb shares set [find comment=HA_AUTO] directory=\\\"\$dir\\\"\"\
 	\n   }\
-	\n   :set mkdirCode \"\$mkdirCode\\r\\n/ip smb shares remove [find comment=HA_AUTO]\\r\\n/file remove [find]\"\
+	\n   :set mkdirCode \"\$mkdirCode\\r\\n/ip smb shares remove [find comment=HA_AUTO]\\r\\n\"\
 	\n   #eh - good chance to keep files in sync, just delete everything, we will reupload. is this going to reduce life of nvram?\
-	\n   :set mkdirCode \"/file remove [find name~\\\"^[^H][^A][^_]\\\" and type!=\\\"directory\\\"]\\n\"\
+	\n   :set mkdirCode \"/file remove [find name~\\\"^[^H][^A][^_]\\\" and type!=\\\"directory\\\"]\\r\\n/delay 2;\\r\\n\$mkdirCode\"\
 	\n   /file print file=HA_mkdirs.txt\
 	\n   /file set [find name=\"HA_mkdirs.txt\"] contents=\$mkdirCode\
+	\n   :put \"mkdirCode: \$mkdirCode end_mkDirCode\"\
 	\n   /tool fetch upload=yes src-path=HA_mkdirs.txt dst-path=HA_mkdirs.auto.rsc address=\$haAddressOther user=ha password=\$haPassword mode=ftp \
-	\n\
+	\n   \
 	\n   :foreach k in [/file find name~\"^[^H][^A][^_]\" and type!=\"directory\"] do={\
 	\n      :local xferfile [/file get \$k name]\
 	\n      :put \"Transferring: \$xferfile\"\
@@ -244,7 +245,7 @@ add name=ha_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n/log warning \"ha_startup: START\"\
 	\n/interface ethernet disable [find]\
 	\n/system script run [find name=\"ha_config\"]\
-	\n:global haStartupHAVersion \"0.1alpha - 6f98e59da41afb11a07055961c848542100a983e\"\
+	\n:global haStartupHAVersion \"0.1alpha - 4cd2e018b2ad91669b07048263ec6c18f6a30ace\"\
 	\n:global isStandbyInSync false\
 	\n:global isMaster false\
 	\n:global haPassword\
@@ -264,7 +265,8 @@ add name=ha_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n\
 	\n/log warning \"ha_startup: 1\"\
 	\n/system scheduler remove [find comment=\"HA_AUTO\"]\
-	\n/system scheduler add name=ha_startup on-event=\":execute \\\"ha_startup\\\"\" policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive start-time=startup comment=\"HA_AUTO\"\
+	\n/system scheduler add comment=HA_AUTO name=ha_startup on-event=\":do {:global haInterface; /system script run [find name=ha_startup]; } on-error={ /interface ethernet disable [find default-name!=\\\"\\\$haInterface\\\"]; /log error \\\"ha_startup: FAILED - DISABLED ALL INTERFACES\\\" }\" policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive start-time=startup \
+	\n\
 	\n#/interface ethernet reset-mac-address\
 	\n/ip address remove [find interface=\"\$haInterface\"]\
 	\n/ip address remove [find comment=\"HA_AUTO\"]\
