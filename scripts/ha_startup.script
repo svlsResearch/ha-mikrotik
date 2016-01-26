@@ -23,7 +23,8 @@
 
 /log warning "ha_startup: 1"
 /system scheduler remove [find comment="HA_AUTO"]
-/system scheduler add name=ha_startup on-event=":execute \"ha_startup\"" policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive start-time=startup comment="HA_AUTO"
+/system scheduler add comment=HA_AUTO name=ha_startup on-event=":do {:global haInterface; /system script run [find name=ha_startup]; } on-error={ /interface ethernet disable [find default-name!=\"\$haInterface\"]; /log error \"ha_startup: FAILED - DISABLED ALL INTERFACES\" }" policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive start-time=startup 
+
 #/interface ethernet reset-mac-address
 /ip address remove [find interface="$haInterface"]
 /ip address remove [find comment="HA_AUTO"]
