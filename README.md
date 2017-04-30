@@ -1,7 +1,7 @@
 # ha-mikrotik (Tested stable)
 High availability code for Mikrotik routers
 
-#Status: April 30th 2017
+# Status: April 30th 2017
 This has been tested stable across 6 different pairs of CCR1009s for over a year, there have been multiple adminstrative failover events and a few cases of hardware failovers. The primary RouterOS code is v6.38.1 and there are instances of v6.39 which seem to work without issue.
 
 # Warning
