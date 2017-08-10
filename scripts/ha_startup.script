@@ -1,8 +1,19 @@
 #:do {
-/system script run [find name=ha_functions]
+:execute "/interface print detail" file="HA_boot_interface_print.txt"
 /log warning "ha_startup: START"
-/interface ethernet disable [find]
+/system script run [find name=ha_functions]
+/log warning "ha_startup: 0.1"
 /system script run [find name="ha_config"]
+/log warning "ha_startup: 0.2"
+:global haInterface
+#Sometimes the hardware isn't initialized by the time we get here. Wait until we can see the interface.
+#https://github.com/svlsResearch/ha-mikrotik/issues/1
+:while ([:len [/interface find where name="$haInterface"]]!=1) do={
+   /log error "ha_startup: delaying for hardware...cant find $haInterface"
+   :delay .1
+}
+/log warning "ha_startup: 0.3"
+/interface ethernet disable [find]
 :global haStartupHAVersion "%%%HA_VERSION%%%"
 :global isStandbyInSync false
 :global isMaster false
@@ -15,15 +26,16 @@
 :global haNetmask
 :global haNetmaskBits
 :global haNetwork
-:global haInterface
 :global haMacOther
 :global haMacMe
 :global haAddressOther
 :global haAddressMe
 
-/log warning "ha_startup: 1"
+/log warning "ha_startup: 1 $haInterface"
 /system scheduler remove [find comment="HA_AUTO"]
-/system scheduler add comment=HA_AUTO name=ha_startup on-event=":do {:global haInterface; /system script run [find name=ha_startup]; } on-error={ /interface ethernet disable [find default-name!=\"\$haInterface\"]; /log error \"ha_startup: FAILED - DISABLED ALL INTERFACES\" }" policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive start-time=startup 
+
+#Pause on-error just in case we error out before the spin loop - hope 5 seconds is enough.
+/system scheduler add comment=HA_AUTO name=ha_startup on-event=":do {:global haInterface; /system script run [find name=ha_startup]; } on-error={ :pause 5; /interface ethernet disable [find default-name!=\"\$haInterface\"]; /log error \"ha_startup: FAILED - DISABLED ALL INTERFACES\" }" policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive start-time=startup 
 
 #/interface ethernet reset-mac-address
 /ip address remove [find interface="$haInterface"]
@@ -35,6 +47,8 @@
 
 /interface ethernet enable [find default-name="$haInterface"] 
 /log warning "ha_startup: 2"
+/interface ethernet get [find default-name="$haInterface"] orig-mac-address
+/log warning "ha_startup: 2.2"
 :local mac [[/interface ethernet get [find default-name="$haInterface"] orig-mac-address]]
 /log warning "ha_startup: 3"
 :if ("$mac" = "$haMacA") do {

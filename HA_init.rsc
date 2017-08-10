@@ -241,11 +241,22 @@ add name=ha_setidentity_new owner=admin policy=ftp,reboot,read,write,policy,test
 	\n"
 remove [find name=ha_startup_new]
 add name=ha_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive source="#:do {\
-	\n/system script run [find name=ha_functions]\
+	\n:execute \"/interface print detail\" file=\"HA_boot_interface_print.txt\"\
 	\n/log warning \"ha_startup: START\"\
-	\n/interface ethernet disable [find]\
+	\n/system script run [find name=ha_functions]\
+	\n/log warning \"ha_startup: 0.1\"\
 	\n/system script run [find name=\"ha_config\"]\
-	\n:global haStartupHAVersion \"0.1alpha - 4cd2e018b2ad91669b07048263ec6c18f6a30ace\"\
+	\n/log warning \"ha_startup: 0.2\"\
+	\n:global haInterface\
+	\n#Sometimes the hardware isn't initialized by the time we get here. Wait until we can see the interface.\
+	\n#https://github.com/svlsResearch/ha-mikrotik/issues/1\
+	\n:while ([:len [/interface find where name=\"\$haInterface\"]]!=1) do={\
+	\n   /log error \"ha_startup: delaying for hardware...cant find \$haInterface\"\
+	\n   :delay .1\
+	\n}\
+	\n/log warning \"ha_startup: 0.3\"\
+	\n/interface ethernet disable [find]\
+	\n:global haStartupHAVersion \"0.2alpha - cbcbee374fac6c969b66cf1c05dff34a729b9442\"\
 	\n:global isStandbyInSync false\
 	\n:global isMaster false\
 	\n:global haPassword\
@@ -257,15 +268,16 @@ add name=ha_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n:global haNetmask\
 	\n:global haNetmaskBits\
 	\n:global haNetwork\
-	\n:global haInterface\
 	\n:global haMacOther\
 	\n:global haMacMe\
 	\n:global haAddressOther\
 	\n:global haAddressMe\
 	\n\
-	\n/log warning \"ha_startup: 1\"\
+	\n/log warning \"ha_startup: 1 \$haInterface\"\
 	\n/system scheduler remove [find comment=\"HA_AUTO\"]\
-	\n/system scheduler add comment=HA_AUTO name=ha_startup on-event=\":do {:global haInterface; /system script run [find name=ha_startup]; } on-error={ /interface ethernet disable [find default-name!=\\\"\\\$haInterface\\\"]; /log error \\\"ha_startup: FAILED - DISABLED ALL INTERFACES\\\" }\" policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive start-time=startup \
+	\n\
+	\n#Pause on-error just in case we error out before the spin loop - hope 5 seconds is enough.\
+	\n/system scheduler add comment=HA_AUTO name=ha_startup on-event=\":do {:global haInterface; /system script run [find name=ha_startup]; } on-error={ :pause 5; /interface ethernet disable [find default-name!=\\\"\\\$haInterface\\\"]; /log error \\\"ha_startup: FAILED - DISABLED ALL INTERFACES\\\" }\" policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive start-time=startup \
 	\n\
 	\n#/interface ethernet reset-mac-address\
 	\n/ip address remove [find interface=\"\$haInterface\"]\
@@ -277,6 +289,8 @@ add name=ha_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n\
 	\n/interface ethernet enable [find default-name=\"\$haInterface\"] \
 	\n/log warning \"ha_startup: 2\"\
+	\n/interface ethernet get [find default-name=\"\$haInterface\"] orig-mac-address\
+	\n/log warning \"ha_startup: 2.2\"\
 	\n:local mac [[/interface ethernet get [find default-name=\"\$haInterface\"] orig-mac-address]]\
 	\n/log warning \"ha_startup: 3\"\
 	\n:if (\"\$mac\" = \"\$haMacA\") do {\
