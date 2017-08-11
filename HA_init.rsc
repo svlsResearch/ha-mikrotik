@@ -256,7 +256,7 @@ add name=ha_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n}\
 	\n/log warning \"ha_startup: 0.3\"\
 	\n/interface ethernet disable [find]\
-	\n:global haStartupHAVersion \"0.2alpha - cbcbee374fac6c969b66cf1c05dff34a729b9442\"\
+	\n:global haStartupHAVersion \"0.2alpha - 1d439fa83ee39f53eab4188362fdaf543439e4e4\"\
 	\n:global isStandbyInSync false\
 	\n:global isMaster false\
 	\n:global haPassword\
@@ -277,7 +277,7 @@ add name=ha_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n/system scheduler remove [find comment=\"HA_AUTO\"]\
 	\n\
 	\n#Pause on-error just in case we error out before the spin loop - hope 5 seconds is enough.\
-	\n/system scheduler add comment=HA_AUTO name=ha_startup on-event=\":do {:global haInterface; /system script run [find name=ha_startup]; } on-error={ :pause 5; /interface ethernet disable [find default-name!=\\\"\\\$haInterface\\\"]; /log error \\\"ha_startup: FAILED - DISABLED ALL INTERFACES\\\" }\" policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive start-time=startup \
+	\n/system scheduler add comment=HA_AUTO name=ha_startup on-event=\":do {:global haInterface; /system script run [find name=ha_startup]; } on-error={ :delay 5; /interface ethernet disable [find default-name!=\\\"\\\$haInterface\\\"]; /log error \\\"ha_startup: FAILED - DISABLED ALL INTERFACES\\\" }\" policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive start-time=startup \
 	\n\
 	\n#/interface ethernet reset-mac-address\
 	\n/ip address remove [find interface=\"\$haInterface\"]\

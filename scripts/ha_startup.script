@@ -35,7 +35,7 @@
 /system scheduler remove [find comment="HA_AUTO"]
 
 #Pause on-error just in case we error out before the spin loop - hope 5 seconds is enough.
-/system scheduler add comment=HA_AUTO name=ha_startup on-event=":do {:global haInterface; /system script run [find name=ha_startup]; } on-error={ :pause 5; /interface ethernet disable [find default-name!=\"\$haInterface\"]; /log error \"ha_startup: FAILED - DISABLED ALL INTERFACES\" }" policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive start-time=startup 
+/system scheduler add comment=HA_AUTO name=ha_startup on-event=":do {:global haInterface; /system script run [find name=ha_startup]; } on-error={ :delay 5; /interface ethernet disable [find default-name!=\"\$haInterface\"]; /log error \"ha_startup: FAILED - DISABLED ALL INTERFACES\" }" policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive start-time=startup 
 
 #/interface ethernet reset-mac-address
 /ip address remove [find interface="$haInterface"]
