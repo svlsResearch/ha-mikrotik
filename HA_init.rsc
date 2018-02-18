@@ -1,7 +1,7 @@
 :do {
 /system script
 remove [find name=ha_checkchanges_new]
-add name=ha_checkchanges_new owner=admin policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive source=":if ([:len [/system script job find where script=\"ha_checkchanges\"]] > 1) do={:error \"already running checkchanges\"; } \
+add name=ha_checkchanges_new owner=admin policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive source=":if ([:len [/system script job find where script=\"ha_checkchanges\"]] > 1) do={:error \"already running checkchanges\"; }\
 	\n:global isMaster\
 	\n:global isStandbyInSync\
 	\n:global haPassword\
@@ -161,7 +161,7 @@ add name=ha_onmaster_new owner=admin policy=ftp,reboot,read,write,policy,test,pa
 	\n:do { :local k [/system script find name=\"on_master\"]; if ([:len \$k] = 1) do={ /system script run \$k } } on-error={ :put \"on_master failed\" }\
 	\n"
 remove [find name=ha_pushbackup_new]
-add name=ha_pushbackup_new owner=admin policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive source=":if ([:len [/system script job find where script=\"ha_pushbackup\"]] > 1) do={:error \"already running pushbackup\"; } \
+add name=ha_pushbackup_new owner=admin policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive source=":if ([:len [/system script job find where script=\"ha_pushbackup\"]] > 1) do={:error \"already running pushbackup\"; }\
 	\n:global haPassword\
 	\n:global isMaster\
 	\n:global haAddressOther\
@@ -256,7 +256,7 @@ add name=ha_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n}\
 	\n/log warning \"ha_startup: 0.3\"\
 	\n/interface ethernet disable [find]\
-	\n:global haStartupHAVersion \"0.2alpha - 1d439fa83ee39f53eab4188362fdaf543439e4e4\"\
+	\n:global haStartupHAVersion \"0.3alpha-test1 - 1331def96306e3148a39ab1dfefdb191f525ddb7\"\
 	\n:global isStandbyInSync false\
 	\n:global isMaster false\
 	\n:global haPassword\
@@ -277,9 +277,12 @@ add name=ha_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n/system scheduler remove [find comment=\"HA_AUTO\"]\
 	\n\
 	\n#Pause on-error just in case we error out before the spin loop - hope 5 seconds is enough.\
-	\n/system scheduler add comment=HA_AUTO name=ha_startup on-event=\":do {:global haInterface; /system script run [find name=ha_startup]; } on-error={ :delay 5; /interface ethernet disable [find default-name!=\\\"\\\$haInterface\\\"]; /log error \\\"ha_startup: FAILED - DISABLED ALL INTERFACES\\\" }\" policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive start-time=startup \
+	\n/system scheduler add comment=HA_AUTO name=ha_startup on-event=\":do {:global haInterface; /system script run [find name=ha_startup]; } on-error={ :delay 5; /interface ethernet disable [find default-name!=\\\"\\\$haInterface\\\"]; /log error \\\"ha_startup: FAILED - DISABLED ALL INTERFACES\\\" }\" policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive start-date=Jan/01/1970 start-time=startup\
 	\n\
+	\n#Reset the MAC on the single HA interface - if they are connected via a switch, they need to be unique.\
+	\n/interface ethernet reset-mac-address [find default-name=\"\$haInterface\"]\
 	\n#/interface ethernet reset-mac-address\
+	\n\
 	\n/ip address remove [find interface=\"\$haInterface\"]\
 	\n/ip address remove [find comment=\"HA_AUTO\"]\
 	\n/interface vrrp remove [find name=\"HA_VRRP\"]\
@@ -324,7 +327,7 @@ add name=ha_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n   }\
 	\n}\
 	\n\
-	\n/ip route remove [find comment=\"HA_AUTO\"]   \
+	\n/ip route remove [find comment=\"HA_AUTO\"]\
 	\n/ip route add gateway=\$haAddressOther distance=250 comment=HA_AUTO\
 	\n\
 	\n/log warning \"ha_startup: 4\"\
@@ -346,10 +349,10 @@ add name=ha_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n/ip address add address=\$haAddressVRRP netmask=255.255.255.255 interface=HA_VRRP comment=\"HA_AUTO\"\
 	\n\
 	\n/log warning \"ha_startup: 6\"\
-	\n/system scheduler add comment=HA_AUTO interval=30m name=ha_exportcurrent on-event=\"/export file=\\\"HA_current.rsc\\\"\" policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive start-date=jan/20/2000 start-time=22:37:10\
-	\n/system scheduler add interval=10m name=ha_checkchanges on-event=ha_checkchanges policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive start-date=jan/1/2000 start-time=18:00:30 comment=HA_AUTO\
+	\n/system scheduler add comment=HA_AUTO interval=10m name=ha_exportcurrent on-event=\"/export file=\\\"HA_current.rsc\\\"\" policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive start-date=Jan/01/1970 start-time=00:05:00\
+	\n/system scheduler add interval=10m name=ha_checkchanges on-event=ha_checkchanges policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive start-date=Jan/01/1970 start-time=00:10:00 comment=HA_AUTO\
 	\n#Still need this - things like DHCP leases dont cause a system config change, we want to backup periodically.\
-	\n/system scheduler add comment=HA_AUTO interval=24h name=ha_auto_pushbackup on-event=ha_pushbackup policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive start-date=jan/20/2000 start-time=05:00:00\
+	\n/system scheduler add comment=HA_AUTO interval=24h name=ha_auto_pushbackup on-event=ha_pushbackup policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive start-date=Jan/01/1970 start-time=05:00:00\
 	\n/log warning \"ha_startup: 7\"\
 	\n:if ([:len [/file find name=\"HA_dsa\"]] = 1) do={\
 	\n   /ip ssh import-host-key private-key-file=HA_rsa\
@@ -360,10 +363,11 @@ add name=ha_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n/user remove [find comment=HA_AUTO]\
 	\n/user add address=\"\$haNetwork/\$haNetmaskBits\" comment=HA_AUTO group=full name=ha password=\"\$haPassword\"\
 	\n/log warning \"ha_startup: 8\"\
-	\n#So you dont get annoyed with constant beeping\
-	\n/system routerboard settings set silent-boot=yes\
 	\n\
-	\n:foreach service in [:toarray \"ftp,telnet,ssh\"] do={\
+	\n#So you dont get annoyed with constant beeping - try catch because this may fail on some platforms (x86).\
+	\n:do {/system routerboard settings set silent-boot=yes} on-error={};\
+	\n\
+	\n:foreach service in [:toarray \"ftp\"] do={\
 	\n   :local serviceAddresses \"\"\
 	\n   :foreach k in=[/ip service get [find name=\$service] address] do={\
 	\n      :if (\$k != \"\$haAddressA/32\" and \$k != \"\$haAddressB/32\" and \$k != \"\$haAddressVRRP/32\") do {\
@@ -393,12 +397,14 @@ add name=ha_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n"
 remove [find name=ha_switchrole_new]
 add name=ha_switchrole_new owner=admin policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive source=":global isMaster\
+	\n:global haAddressOther\
+	\n:global haInterface\
 	\n:if (\$isMaster) do {\
 	\n   :put \"I am master - switching role\"\
 	\n   /system script run [find name=\"ha_pushbackup\"]\
 	\n   :put \"delaying 60\"\
 	\n   /delay 60\
-	\n   :if (\$isMaster && [/ping 169.254.23.3 count=1 interface=ether1 ttl=1] >= 1) do {\
+	\n   :if (\$isMaster && [/ping \$haAddressOther count=1 interface=\$haInterface ttl=1]  >= 1) do {\
 	\n      :put \"REBOOTING MYSELF\"\
 	\n      :execute \"/system reboot\"\
 	\n   } else {\
