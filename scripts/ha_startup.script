@@ -35,9 +35,12 @@
 /system scheduler remove [find comment="HA_AUTO"]
 
 #Pause on-error just in case we error out before the spin loop - hope 5 seconds is enough.
-/system scheduler add comment=HA_AUTO name=ha_startup on-event=":do {:global haInterface; /system script run [find name=ha_startup]; } on-error={ :delay 5; /interface ethernet disable [find default-name!=\"\$haInterface\"]; /log error \"ha_startup: FAILED - DISABLED ALL INTERFACES\" }" policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive start-time=startup 
+/system scheduler add comment=HA_AUTO name=ha_startup on-event=":do {:global haInterface; /system script run [find name=ha_startup]; } on-error={ :delay 5; /interface ethernet disable [find default-name!=\"\$haInterface\"]; /log error \"ha_startup: FAILED - DISABLED ALL INTERFACES\" }" policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive start-date=Jan/01/1970 start-time=startup
 
+#Reset the MAC on the single HA interface - if they are connected via a switch, they need to be unique.
+/interface ethernet reset-mac-address [find default-name="$haInterface"]
 #/interface ethernet reset-mac-address
+
 /ip address remove [find interface="$haInterface"]
 /ip address remove [find comment="HA_AUTO"]
 /interface vrrp remove [find name="HA_VRRP"]
@@ -82,7 +85,7 @@
    }
 }
 
-/ip route remove [find comment="HA_AUTO"]   
+/ip route remove [find comment="HA_AUTO"]
 /ip route add gateway=$haAddressOther distance=250 comment=HA_AUTO
 
 /log warning "ha_startup: 4"
@@ -104,10 +107,10 @@
 /ip address add address=$haAddressVRRP netmask=255.255.255.255 interface=HA_VRRP comment="HA_AUTO"
 
 /log warning "ha_startup: 6"
-/system scheduler add comment=HA_AUTO interval=30m name=ha_exportcurrent on-event="/export file=\"HA_current.rsc\"" policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive start-date=jan/20/2000 start-time=22:37:10
-/system scheduler add interval=10m name=ha_checkchanges on-event=ha_checkchanges policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive start-date=jan/1/2000 start-time=18:00:30 comment=HA_AUTO
+/system scheduler add comment=HA_AUTO interval=10m name=ha_exportcurrent on-event="/export file=\"HA_current.rsc\"" policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive start-date=Jan/01/1970 start-time=00:05:00
+/system scheduler add interval=10m name=ha_checkchanges on-event=ha_checkchanges policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive start-date=Jan/01/1970 start-time=00:10:00 comment=HA_AUTO
 #Still need this - things like DHCP leases dont cause a system config change, we want to backup periodically.
-/system scheduler add comment=HA_AUTO interval=24h name=ha_auto_pushbackup on-event=ha_pushbackup policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive start-date=jan/20/2000 start-time=05:00:00
+/system scheduler add comment=HA_AUTO interval=24h name=ha_auto_pushbackup on-event=ha_pushbackup policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive start-date=Jan/01/1970 start-time=05:00:00
 /log warning "ha_startup: 7"
 :if ([:len [/file find name="HA_dsa"]] = 1) do={
    /ip ssh import-host-key private-key-file=HA_rsa
@@ -118,10 +121,11 @@
 /user remove [find comment=HA_AUTO]
 /user add address="$haNetwork/$haNetmaskBits" comment=HA_AUTO group=full name=ha password="$haPassword"
 /log warning "ha_startup: 8"
-#So you dont get annoyed with constant beeping
-/system routerboard settings set silent-boot=yes
 
-:foreach service in [:toarray "ftp,telnet,ssh"] do={
+#So you dont get annoyed with constant beeping - try catch because this may fail on some platforms (x86).
+:do {/system routerboard settings set silent-boot=yes} on-error={};
+
+:foreach service in [:toarray "ftp"] do={
    :local serviceAddresses ""
    :foreach k in=[/ip service get [find name=$service] address] do={
       :if ($k != "$haAddressA/32" and $k != "$haAddressB/32" and $k != "$haAddressVRRP/32") do {
