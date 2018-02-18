@@ -1,4 +1,4 @@
-:if ([:len [/system script job find where script="ha_pushbackup"]] > 1) do={:error "already running pushbackup"; } 
+:if ([:len [/system script job find where script="ha_pushbackup"]] > 1) do={:error "already running pushbackup"; }
 :global haPassword
 :global isMaster
 :global haAddressOther

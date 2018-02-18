@@ -1,4 +1,4 @@
-:if ([:len [/system script job find where script="ha_checkchanges"]] > 1) do={:error "already running checkchanges"; } 
+:if ([:len [/system script job find where script="ha_checkchanges"]] > 1) do={:error "already running checkchanges"; }
 :global isMaster
 :global isStandbyInSync
 :global haPassword
