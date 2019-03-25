@@ -24,3 +24,11 @@
    \n:global haMacB \"$macB\""
    /system script run [find name="ha_install"]
 }
+
+:global HASwitchRole do={
+   /system script run [find name="ha_switchrole"]
+}
+
+:global HALoopPushStandby do={
+   /system script run [find name="ha_loop_push_standby"]
+}

@@ -73,6 +73,14 @@ add name=ha_functions_new owner=admin policy=ftp,reboot,read,write,policy,test,p
 	\n   \\n:global haMacB \\\"\$macB\\\"\"\
 	\n   /system script run [find name=\"ha_install\"]\
 	\n}\
+	\n\
+	\n:global HASwitchRole do={\
+	\n   /system script run [find name=\"ha_switchrole\"]\
+	\n}\
+	\n\
+	\n:global HALoopPushStandby do={\
+	\n   /system script run [find name=\"ha_loop_push_standby\"]\
+	\n}\
 	\n"
 remove [find name=ha_install_new]
 add name=ha_install_new owner=admin policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive source="/system script run [find name=\"ha_config\"]\
@@ -144,6 +152,18 @@ add name=ha_install_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n:put \"###END OF PASTE FOR OTHER DEVICE###\"\
 	\n:put \"###\"\
 	\n"
+remove [find name=ha_loop_push_standby_new]
+add name=ha_loop_push_standby_new owner=admin policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive source="#Debugging stress test tool for new RouterOS testing\
+	\n:for pushCount from=1 to=10000 do={\
+	\n   :put \"\$pushCount pushing\"\
+	\n   /system script run [find name=\"ha_pushbackup\"]\
+	\n   :put \"\$pushCount push done\"\
+	\n   :delay 120\
+	\n   /system script run [find name=\"ha_checkchanges\"]\
+	\n   :put \"\$pushCount sync ok\"\
+	\n   :delay 10\
+	\n}\
+	\n"
 remove [find name=ha_onbackup_new]
 add name=ha_onbackup_new owner=admin policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive source=":global isMaster false\
 	\n:global haNetmaskBits\
@@ -170,25 +190,33 @@ add name=ha_pushbackup_new owner=admin policy=ftp,reboot,read,write,policy,test,
 	\n} else {\
 	\n   #Really? this is the only way to create directories?\
 	\n   :local mkdirCode \":do { /ip smb shares add comment=HA_AUTO name=mkdir disabled=yes directory=/skins } on-error={}\"\
-	\n   :foreach k in [/file find name~\"^[^H][^A][^_]\" and type=\"directory\"] do={\
-	\n      :local dir [/file get \$k name]\
-	\n      :set mkdirCode \"\$mkdirCode\\r\\n/ip smb shares set [find comment=HA_AUTO] directory=\\\"\$dir\\\"\"\
+	\n\
+	\n   :foreach k in [/file find type=\"directory\"] do={\
+	\n      :local xferfile [/file get \$k name]\
+	\n      if ([:pick \"\$xferfile\" 0 3] != \"HA_\") do={\
+	\n         :set mkdirCode \"\$mkdirCode\\r\\n/ip smb shares set [find comment=HA_AUTO] directory=\\\"\$xferfile\\\"\"\
+	\n      }\
 	\n   }\
+	\n\
 	\n   :set mkdirCode \"\$mkdirCode\\r\\n/ip smb shares remove [find comment=HA_AUTO]\\r\\n\"\
 	\n   #eh - good chance to keep files in sync, just delete everything, we will reupload. is this going to reduce life of nvram?\
-	\n   :set mkdirCode \"/file remove [find name~\\\"^[^H][^A][^_]\\\" and type!=\\\"directory\\\"]\\r\\n/delay 2;\\r\\n\$mkdirCode\"\
+	\n   :local purgeFilesCode \":foreach k in [/file find type!=\\\"directory\\\"] do={ :local xferfile [/file get \\\$k name]; if ([:pick \\\"\\\$xferfile\\\" 0 3] != \\\"HA_\\\") do={ :put \\\"removing \\\$xferfile\\\"; /file remove \\\$k; } }\"\
+	\n   :set mkdirCode \"\$purgeFilesCode;\\r\\n/delay 2;\\r\\n\$mkdirCode\"\
+	\n\
 	\n   /file print file=HA_mkdirs.txt\
 	\n   /file set [find name=\"HA_mkdirs.txt\"] contents=\$mkdirCode\
 	\n   :put \"mkdirCode: \$mkdirCode end_mkDirCode\"\
 	\n   /tool fetch upload=yes src-path=HA_mkdirs.txt dst-path=HA_mkdirs.auto.rsc address=\$haAddressOther user=ha password=\$haPassword mode=ftp \
 	\n   \
-	\n   :foreach k in [/file find name~\"^[^H][^A][^_]\" and type!=\"directory\"] do={\
+	\n   :foreach k in [/file find type!=\"directory\"] do={\
 	\n      :local xferfile [/file get \$k name]\
-	\n      :put \"Transferring: \$xferfile\"\
-	\n      :do {\
-	\n         /tool fetch upload=yes src-path=\$xferfile dst-path=\$xferfile address=\$haAddressOther user=ha password=\$haPassword mode=ftp\
-	\n      } on-error={\
-	\n         :put \"Failed to transfer \$xferfile\"\
+	\n      if ([:pick \"\$xferfile\" 0 3] != \"HA_\") do={\
+	\n         :put \"Transferring: \$xferfile\"\
+	\n         :do {\
+	\n            /tool fetch upload=yes src-path=\$xferfile dst-path=\$xferfile address=\$haAddressOther user=ha password=\$haPassword mode=ftp\
+	\n         } on-error={\
+	\n            :put \"Failed to transfer \$xferfile\"\
+	\n         }\
 	\n      }\
 	\n   }\
 	\n\
@@ -256,7 +284,7 @@ add name=ha_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n}\
 	\n/log warning \"ha_startup: 0.3\"\
 	\n/interface ethernet disable [find]\
-	\n:global haStartupHAVersion \"0.3alpha-test1 - 1331def96306e3148a39ab1dfefdb191f525ddb7\"\
+	\n:global haStartupHAVersion \"0.3alpha-test1 - 312960e37cf3ec9c107607ec3263c20d20d09ace\"\
 	\n:global isStandbyInSync false\
 	\n:global isMaster false\
 	\n:global haPassword\
@@ -426,6 +454,9 @@ set name=ha_functions [find name=ha_functions_new]
 remove [find name=ha_install_old]
 remove [find name=ha_install]
 set name=ha_install [find name=ha_install_new]
+remove [find name=ha_loop_push_standby_old]
+remove [find name=ha_loop_push_standby]
+set name=ha_loop_push_standby [find name=ha_loop_push_standby_new]
 remove [find name=ha_onbackup_old]
 remove [find name=ha_onbackup]
 set name=ha_onbackup [find name=ha_onbackup_new]
