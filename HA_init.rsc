@@ -269,6 +269,14 @@ add name=ha_setidentity_new owner=admin policy=ftp,reboot,read,write,policy,test
 	\n"
 remove [find name=ha_startup_new]
 add name=ha_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive source="#:do {\
+	\n#Prevent double running of the startup. Is there a bug in the scheduler? It seems that sometimes our start-time=startup ha_startup\
+	\n#fires again on newer versions of RouterOS.\
+	\n:global haStartupHasRun\
+	\n:if (\$haStartupHasRun != nil) do {\
+	\n   /log warning \"ha_startup: ERROR ATTEMPTED TO RUN AGAIN!!! \$haStartupHasRun\"\
+	\n   :put \"ha_startup: ERROR ATTEMPTED TO RUN AGAIN!!! \$haStartupHasRun\"\
+	\n} else {\
+	\n:set haStartupHasRun [/system resource get uptime]\
 	\n:execute \"/interface print detail\" file=\"HA_boot_interface_print.txt\"\
 	\n/log warning \"ha_startup: START\"\
 	\n/system script run [find name=ha_functions]\
@@ -284,7 +292,7 @@ add name=ha_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n}\
 	\n/log warning \"ha_startup: 0.3\"\
 	\n/interface ethernet disable [find]\
-	\n:global haStartupHAVersion \"0.3alpha-test1 - 312960e37cf3ec9c107607ec3263c20d20d09ace\"\
+	\n:global haStartupHAVersion \"0.4alpha-test1 - 2fb60f2d69c1f908b318724f26e51ca2d4295861\"\
 	\n:global isStandbyInSync false\
 	\n:global isMaster false\
 	\n:global haPassword\
@@ -422,6 +430,7 @@ add name=ha_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n#}\
 	\n\
 	\n:do { :local k [/system script find name=\"on_startup\"]; if ([:len \$k] = 1) do={ /system script run \$k } } on-error={ :put \"on_startup failed\" }\
+	\n}\
 	\n"
 remove [find name=ha_switchrole_new]
 add name=ha_switchrole_new owner=admin policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive source=":global isMaster\
