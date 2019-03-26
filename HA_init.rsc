@@ -256,7 +256,7 @@ add name=ha_report_startup_new owner=admin policy=ftp,reboot,read,write,policy,t
 	\n:global isMaster\
 	\n:global haStartupHasRun\
 	\n:global haStartupHAVersion\
-	\n/log info \"ha_startup: ha_rebootspin debug badCount=\$badCount goodCount=\$goodCount delay1Count=\$delay1Count delay2Count=\$delay2Count uptime=\$uptime isMaster=\$isMaster haStartupHasRun=\$haStartupHasRun haStartupHAVersion=\$haStartupHAVersion\"\
+	\n/log info \"ha_startup: ha_report_startup debug badCount=\$badCount goodCount=\$goodCount delay1Count=\$delay1Count delay2Count=\$delay2Count uptime=\$uptime isMaster=\$isMaster haStartupHasRun=\$haStartupHasRun haStartupHAVersion=\$haStartupHAVersion\"\
 	\n:execute \"/log print\" file=\"HA_boot_log.txt\"\
 	\n\
 	\n#Debugging helper for spinning reboots of the standby - you probably don't want to mess with this.\
@@ -323,7 +323,7 @@ add name=ha_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n}\
 	\n/log warning \"ha_startup: 0.3\"\
 	\n/interface ethernet disable [find]\
-	\n:global haStartupHAVersion \"0.4alpha-test1 - 7a95aa0066cea530364f9d8c3ec6bcff950bf421\"\
+	\n:global haStartupHAVersion \"0.4alpha-test1 - 84a1d6a37120f60d196fd06b774c8f9818c7ece2\"\
 	\n:global isStandbyInSync false\
 	\n:global isMaster false\
 	\n:global haPassword\
