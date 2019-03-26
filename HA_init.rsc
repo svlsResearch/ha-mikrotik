@@ -323,7 +323,7 @@ add name=ha_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n}\
 	\n/log warning \"ha_startup: 0.3\"\
 	\n/interface ethernet disable [find]\
-	\n:global haStartupHAVersion \"0.4alpha-test1 - 84a1d6a37120f60d196fd06b774c8f9818c7ece2\"\
+	\n:global haStartupHAVersion \"0.4alpha-test2 - 84a1d6a37120f60d196fd06b774c8f9818c7ece2\"\
 	\n:global isStandbyInSync false\
 	\n:global isMaster false\
 	\n:global haPassword\
