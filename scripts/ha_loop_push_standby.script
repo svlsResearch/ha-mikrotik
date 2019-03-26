@@ -1,0 +1,10 @@
+#Debugging stress test tool for new RouterOS testing
+:for pushCount from=1 to=10000 do={
+   :put "$pushCount pushing"
+   /system script run [find name="ha_pushbackup"]
+   :put "$pushCount push done"
+   :delay 120
+   /system script run [find name="ha_checkchanges"]
+   :put "$pushCount sync ok"
+   :delay 10
+}
