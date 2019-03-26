@@ -1,4 +1,4 @@
-:delay 30
+:delay 60
 :local badCount [:len [/log find where message~"ha_startup.*(FAILED)"]]
 :local goodCount [:len [/log find where message~"ha_startup.*(DONE)"]]
 :local delay1Count [:len [/log find where message~"ha_startup.*(delaying1)"]]
