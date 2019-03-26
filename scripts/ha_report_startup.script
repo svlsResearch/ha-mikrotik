@@ -8,3 +8,20 @@
 :global haStartupHasRun
 /log info "ha_startup: ha_rebootspin debug badCount=$badCount goodCount=$goodCount delay1Count=$delay1Count delay2Count=$delay2Count uptime=$uptime isMaster=$isMaster haStartupHasRun=$haStartupHasRun"
 :execute "/log print" file="HA_boot_log.txt"
+
+#Debugging helper for spinning reboots of the standby - you probably don't want to mess with this.
+:if (false) do {
+   :if ($isMaster) do {
+      #Just because we are master doesnt mean we really are, we could have a failed startup but it is too risky to do anything else.
+      :put "I am master - do nothing"
+   } else {
+      :if ($goodCount = 1) do {
+         :put "REBOOT"
+         /system reboot
+      } else {
+         :put "STAY"
+         #Disable all interfaces if they havent already, so the primary doesnt sneak in and we lose the failed state.
+         /interface ethernet disable [find]
+      }
+   }
+}
