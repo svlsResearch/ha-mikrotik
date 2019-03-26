@@ -1,4 +1,13 @@
-:delay 60
+#Attempt to kick the timing clients into a forced update so we get accurate timestamps to syslog on the report.
+:do {/ip cloud force-update} on-error={};
+:if ([/system ntp client get enabled]) do {
+   /system ntp client set enabled=no
+   :delay 16
+   /system ntp client set enabled=yes
+}
+
+:delay 65
+
 :local badCount [:len [/log find where message~"ha_startup.*(FAILED)"]]
 :local goodCount [:len [/log find where message~"ha_startup.*(DONE)"]]
 :local delay1Count [:len [/log find where message~"ha_startup.*(delaying1)"]]
@@ -7,7 +16,7 @@
 :global isMaster
 :global haStartupHasRun
 :global haStartupHAVersion
-/log info "ha_startup: ha_report_startup debug badCount=$badCount goodCount=$goodCount delay1Count=$delay1Count delay2Count=$delay2Count uptime=$uptime isMaster=$isMaster haStartupHasRun=$haStartupHasRun haStartupHAVersion=$haStartupHAVersion"
+/log info "ha_startup: ha_report_startup debug haReportTag=1 badCount=$badCount goodCount=$goodCount delay1Count=$delay1Count delay2Count=$delay2Count uptime=$uptime isMaster=$isMaster haStartupHasRun=$haStartupHasRun haStartupHAVersion=$haStartupHAVersion"
 :execute "/log print" file="HA_boot_log.txt"
 
 #Debugging helper for spinning reboots of the standby - you probably don't want to mess with this.

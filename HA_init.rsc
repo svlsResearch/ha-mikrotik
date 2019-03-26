@@ -247,7 +247,16 @@ add name=ha_pushbackup_new owner=admin policy=ftp,reboot,read,write,policy,test,
 	\n}\
 	\n"
 remove [find name=ha_report_startup_new]
-add name=ha_report_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive source=":delay 60\
+add name=ha_report_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive source="#Attempt to kick the timing clients into a forced update so we get accurate timestamps to syslog on the report.\
+	\n:do {/ip cloud force-update} on-error={};\
+	\n:if ([/system ntp client get enabled]) do {\
+	\n   /system ntp client set enabled=no\
+	\n   :delay 16\
+	\n   /system ntp client set enabled=yes\
+	\n}\
+	\n\
+	\n:delay 65\
+	\n\
 	\n:local badCount [:len [/log find where message~\"ha_startup.*(FAILED)\"]]\
 	\n:local goodCount [:len [/log find where message~\"ha_startup.*(DONE)\"]]\
 	\n:local delay1Count [:len [/log find where message~\"ha_startup.*(delaying1)\"]]\
@@ -256,7 +265,7 @@ add name=ha_report_startup_new owner=admin policy=ftp,reboot,read,write,policy,t
 	\n:global isMaster\
 	\n:global haStartupHasRun\
 	\n:global haStartupHAVersion\
-	\n/log info \"ha_startup: ha_report_startup debug badCount=\$badCount goodCount=\$goodCount delay1Count=\$delay1Count delay2Count=\$delay2Count uptime=\$uptime isMaster=\$isMaster haStartupHasRun=\$haStartupHasRun haStartupHAVersion=\$haStartupHAVersion\"\
+	\n/log info \"ha_startup: ha_report_startup debug haReportTag=1 badCount=\$badCount goodCount=\$goodCount delay1Count=\$delay1Count delay2Count=\$delay2Count uptime=\$uptime isMaster=\$isMaster haStartupHasRun=\$haStartupHasRun haStartupHAVersion=\$haStartupHAVersion\"\
 	\n:execute \"/log print\" file=\"HA_boot_log.txt\"\
 	\n\
 	\n#Debugging helper for spinning reboots of the standby - you probably don't want to mess with this.\
@@ -323,7 +332,7 @@ add name=ha_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n}\
 	\n/log warning \"ha_startup: 0.3\"\
 	\n/interface ethernet disable [find]\
-	\n:global haStartupHAVersion \"0.4alpha-test2 - 88947a41812a85bfcdd8fe7ced6768c7fdf89067\"\
+	\n:global haStartupHAVersion \"0.4alpha-test2 - 935ef9264fe2c0f9138dfe97fdd32299cf6fc264\"\
 	\n:global isStandbyInSync false\
 	\n:global isMaster false\
 	\n:global haPassword\
