@@ -1,0 +1,10 @@
+:delay 30
+:local badCount [:len [/log find where message~"ha_startup.*(FAILED)"]]
+:local goodCount [:len [/log find where message~"ha_startup.*(DONE)"]]
+:local delay1Count [:len [/log find where message~"ha_startup.*(delaying1)"]]
+:local delay2Count [:len [/log find where message~"ha_startup.*(delaying2)"]]
+:local uptime [/system resource get uptime]
+:global isMaster
+:global haStartupHasRun
+/log info "ha_startup: ha_rebootspin debug badCount=$badCount goodCount=$goodCount delay1Count=$delay1Count delay2Count=$delay2Count uptime=$uptime isMaster=$isMaster haStartupHasRun=$haStartupHasRun"
+:execute "/log print" file="HA_boot_log.txt"
