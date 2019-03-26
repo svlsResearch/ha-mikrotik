@@ -246,6 +246,18 @@ add name=ha_pushbackup_new owner=admin policy=ftp,reboot,read,write,policy,test,
 	\n   }\
 	\n}\
 	\n"
+remove [find name=ha_report_startup_new]
+add name=ha_report_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive source=":delay 30\
+	\n:local badCount [:len [/log find where message~\"ha_startup.*(FAILED)\"]]\
+	\n:local goodCount [:len [/log find where message~\"ha_startup.*(DONE)\"]]\
+	\n:local delay1Count [:len [/log find where message~\"ha_startup.*(delaying1)\"]]\
+	\n:local delay2Count [:len [/log find where message~\"ha_startup.*(delaying2)\"]]\
+	\n:local uptime [/system resource get uptime]\
+	\n:global isMaster\
+	\n:global haStartupHasRun\
+	\n/log info \"ha_startup: ha_rebootspin debug badCount=\$badCount goodCount=\$goodCount delay1Count=\$delay1Count delay2Count=\$delay2Count uptime=\$uptime isMaster=\$isMaster haStartupHasRun=\$haStartupHasRun\"\
+	\n:execute \"/log print\" file=\"HA_boot_log.txt\"\
+	\n"
 remove [find name=ha_setconfigver_new]
 add name=ha_setconfigver_new owner=admin policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive source=":local verHistory [:tostr [:pick [/system history print detail as-value] 1]]\
 	\n:local verCertificate [:tostr [/certificate find]]\
@@ -272,9 +284,10 @@ add name=ha_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n#Prevent double running of the startup. Is there a bug in the scheduler? It seems that sometimes our start-time=startup ha_startup\
 	\n#fires again on newer versions of RouterOS.\
 	\n:global haStartupHasRun\
-	\n:if (\$haStartupHasRun != nil) do {\
-	\n   /log warning \"ha_startup: ERROR ATTEMPTED TO RUN AGAIN!!! \$haStartupHasRun\"\
-	\n   :put \"ha_startup: ERROR ATTEMPTED TO RUN AGAIN!!! \$haStartupHasRun\"\
+	\n:global uptime [/system resource get uptime]\
+	\n:if (\$haStartupHasRun != nil || uptime > 2m) do {\
+	\n   /log warning \"ha_startup: ERROR ATTEMPTED TO RUN AGAIN!!! \$haStartupHasRun \$uptime\"\
+	\n   :put \"ha_startup: ERROR ATTEMPTED TO RUN AGAIN!!! \$haStartupHasRun \$uptime\"\
 	\n} else {\
 	\n:set haStartupHasRun [/system resource get uptime]\
 	\n:execute \"/interface print detail\" file=\"HA_boot_interface_print.txt\"\
@@ -286,13 +299,13 @@ add name=ha_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n:global haInterface\
 	\n#Sometimes the hardware isn't initialized by the time we get here. Wait until we can see the interface.\
 	\n#https://github.com/svlsResearch/ha-mikrotik/issues/1\
-	\n:while ([:len [/interface find where name=\"\$haInterface\"]]!=1) do={\
-	\n   /log error \"ha_startup: delaying for hardware...cant find \$haInterface\"\
+	\n:while ([:len [/interface find where name=\"\$haInterface\"]] != 1) do={\
+	\n   /log error \"ha_startup: delaying1 for hardware...cant find \$haInterface\"\
 	\n   :delay .1\
 	\n}\
 	\n/log warning \"ha_startup: 0.3\"\
 	\n/interface ethernet disable [find]\
-	\n:global haStartupHAVersion \"0.4alpha-test1 - 2fb60f2d69c1f908b318724f26e51ca2d4295861\"\
+	\n:global haStartupHAVersion \"0.4alpha-test1 - 6949c80275edd705f0547e24c7f3e92e262b6859\"\
 	\n:global isStandbyInSync false\
 	\n:global isMaster false\
 	\n:global haPassword\
@@ -314,6 +327,7 @@ add name=ha_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n\
 	\n#Pause on-error just in case we error out before the spin loop - hope 5 seconds is enough.\
 	\n/system scheduler add comment=HA_AUTO name=ha_startup on-event=\":do {:global haInterface; /system script run [find name=ha_startup]; } on-error={ :delay 5; /interface ethernet disable [find default-name!=\\\"\\\$haInterface\\\"]; /log error \\\"ha_startup: FAILED - DISABLED ALL INTERFACES\\\" }\" policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive start-date=Jan/01/1970 start-time=startup\
+	\n/system scheduler add comment=HA_AUTO name=ha_report_startup on-event=\"ha_report_startup\" policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive start-date=Jan/01/1970 start-time=startup\
 	\n\
 	\n#Reset the MAC on the single HA interface - if they are connected via a switch, they need to be unique.\
 	\n/interface ethernet reset-mac-address [find default-name=\"\$haInterface\"]\
@@ -328,6 +342,13 @@ add name=ha_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n\
 	\n/interface ethernet enable [find default-name=\"\$haInterface\"] \
 	\n/log warning \"ha_startup: 2\"\
+	\n:while ([:len [/interface find where name=\"\$haInterface\"]] != 1) do={\
+	\n   /log error \"ha_startup: delaying2 for hardware...cant find \$haInterface\"\
+	\n   :delay .1\
+	\n}\
+	\n#:execute \":put [/interface ethernet get [find default-name=\\\"\$haInterface\\\"] orig-mac-address]\" file=\"HA_debug2.txt\"\
+	\n#:execute \"/interface print detail\" file=\"HA_debug2_1.txt\"\
+	\n/log warning \"ha_startup: 2.1\"\
 	\n/interface ethernet get [find default-name=\"\$haInterface\"] orig-mac-address\
 	\n/log warning \"ha_startup: 2.2\"\
 	\n:local mac [[/interface ethernet get [find default-name=\"\$haInterface\"] orig-mac-address]]\
@@ -475,6 +496,9 @@ set name=ha_onmaster [find name=ha_onmaster_new]
 remove [find name=ha_pushbackup_old]
 remove [find name=ha_pushbackup]
 set name=ha_pushbackup [find name=ha_pushbackup_new]
+remove [find name=ha_report_startup_old]
+remove [find name=ha_report_startup]
+set name=ha_report_startup [find name=ha_report_startup_new]
 remove [find name=ha_setconfigver_old]
 remove [find name=ha_setconfigver]
 set name=ha_setconfigver [find name=ha_setconfigver_new]
