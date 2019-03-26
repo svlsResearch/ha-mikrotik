@@ -255,8 +255,26 @@ add name=ha_report_startup_new owner=admin policy=ftp,reboot,read,write,policy,t
 	\n:local uptime [/system resource get uptime]\
 	\n:global isMaster\
 	\n:global haStartupHasRun\
-	\n/log info \"ha_startup: ha_rebootspin debug badCount=\$badCount goodCount=\$goodCount delay1Count=\$delay1Count delay2Count=\$delay2Count uptime=\$uptime isMaster=\$isMaster haStartupHasRun=\$haStartupHasRun\"\
+	\n:global haStartupHAVersion\
+	\n/log info \"ha_startup: ha_rebootspin debug badCount=\$badCount goodCount=\$goodCount delay1Count=\$delay1Count delay2Count=\$delay2Count uptime=\$uptime isMaster=\$isMaster haStartupHasRun=\$haStartupHasRun haStartupHAVersion=\$haStartupHAVersion\"\
 	\n:execute \"/log print\" file=\"HA_boot_log.txt\"\
+	\n\
+	\n#Debugging helper for spinning reboots of the standby - you probably don't want to mess with this.\
+	\n:if (false) do {\
+	\n   :if (\$isMaster) do {\
+	\n      #Just because we are master doesnt mean we really are, we could have a failed startup but it is too risky to do anything else.\
+	\n      :put \"I am master - do nothing\"\
+	\n   } else {\
+	\n      :if (\$goodCount = 1) do {\
+	\n         :put \"REBOOT\"\
+	\n         /system reboot\
+	\n      } else {\
+	\n         :put \"STAY\"\
+	\n         #Disable all interfaces if they havent already, so the primary doesnt sneak in and we lose the failed state.\
+	\n         /interface ethernet disable [find]\
+	\n      }\
+	\n   }\
+	\n}\
 	\n"
 remove [find name=ha_setconfigver_new]
 add name=ha_setconfigver_new owner=admin policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive source=":local verHistory [:tostr [:pick [/system history print detail as-value] 1]]\
@@ -305,7 +323,7 @@ add name=ha_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n}\
 	\n/log warning \"ha_startup: 0.3\"\
 	\n/interface ethernet disable [find]\
-	\n:global haStartupHAVersion \"0.4alpha-test1 - 6949c80275edd705f0547e24c7f3e92e262b6859\"\
+	\n:global haStartupHAVersion \"0.4alpha-test1 - 7a95aa0066cea530364f9d8c3ec6bcff950bf421\"\
 	\n:global isStandbyInSync false\
 	\n:global isMaster false\
 	\n:global haPassword\
@@ -321,6 +339,8 @@ add name=ha_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n:global haMacMe\
 	\n:global haAddressOther\
 	\n:global haAddressMe\
+	\n\
+	\n/log warning \"ha_startup: version \$haStartupHAVersion\"\
 	\n\
 	\n/log warning \"ha_startup: 1 \$haInterface\"\
 	\n/system scheduler remove [find comment=\"HA_AUTO\"]\

@@ -40,6 +40,8 @@
 :global haAddressOther
 :global haAddressMe
 
+/log warning "ha_startup: version $haStartupHAVersion"
+
 /log warning "ha_startup: 1 $haInterface"
 /system scheduler remove [find comment="HA_AUTO"]
 
