@@ -158,7 +158,7 @@ add name=ha_loop_push_standby_new owner=admin policy=ftp,reboot,read,write,polic
 	\n   :put \"\$pushCount pushing\"\
 	\n   /system script run [find name=\"ha_pushbackup\"]\
 	\n   :put \"\$pushCount push done\"\
-	\n   :delay 120\
+	\n   :delay 200\
 	\n   /system script run [find name=\"ha_checkchanges\"]\
 	\n   :put \"\$pushCount sync ok\"\
 	\n   :delay 10\
@@ -265,7 +265,8 @@ add name=ha_report_startup_new owner=admin policy=ftp,reboot,read,write,policy,t
 	\n:global isMaster\
 	\n:global haStartupHasRun\
 	\n:global haStartupHAVersion\
-	\n/log info \"ha_startup: ha_report_startup debug haReportTag=1 badCount=\$badCount goodCount=\$goodCount delay1Count=\$delay1Count delay2Count=\$delay2Count uptime=\$uptime isMaster=\$isMaster haStartupHasRun=\$haStartupHasRun haStartupHAVersion=\$haStartupHAVersion\"\
+	\n:global haInitTries\
+	\n/log info \"ha_startup: ha_report_startup debug haReportTag=1 badCount=\$badCount goodCount=\$goodCount delay1Count=\$delay1Count delay2Count=\$delay2Count uptime=\$uptime isMaster=\$isMaster haInitTries=\$haInitTries haStartupHasRun=\$haStartupHasRun haStartupHAVersion=\$haStartupHAVersion\"\
 	\n:execute \"/log print\" file=\"HA_boot_log.txt\"\
 	\n\
 	\n#Debugging helper for spinning reboots of the standby - you probably don't want to mess with this.\
@@ -332,7 +333,7 @@ add name=ha_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n}\
 	\n/log warning \"ha_startup: 0.3\"\
 	\n/interface ethernet disable [find]\
-	\n:global haStartupHAVersion \"0.4alpha-test2 - 935ef9264fe2c0f9138dfe97fdd32299cf6fc264\"\
+	\n:global haStartupHAVersion \"0.4alpha-test5 - 243933d882594ccafaa7459467eb24570ea53263\"\
 	\n:global isStandbyInSync false\
 	\n:global isMaster false\
 	\n:global haPassword\
@@ -358,30 +359,41 @@ add name=ha_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n/system scheduler add comment=HA_AUTO name=ha_startup on-event=\":do {:global haInterface; /system script run [find name=ha_startup]; } on-error={ :delay 5; /interface ethernet disable [find default-name!=\\\"\\\$haInterface\\\"]; /log error \\\"ha_startup: FAILED - DISABLED ALL INTERFACES\\\" }\" policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive start-date=Jan/01/1970 start-time=startup\
 	\n/system scheduler add comment=HA_AUTO name=ha_report_startup on-event=\"ha_report_startup\" policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive start-date=Jan/01/1970 start-time=startup\
 	\n\
-	\n#Reset the MAC on the single HA interface - if they are connected via a switch, they need to be unique.\
-	\n/interface ethernet reset-mac-address [find default-name=\"\$haInterface\"]\
-	\n#/interface ethernet reset-mac-address\
-	\n\
-	\n/ip address remove [find interface=\"\$haInterface\"]\
-	\n/ip address remove [find comment=\"HA_AUTO\"]\
-	\n/interface vrrp remove [find name=\"HA_VRRP\"]\
-	\n/ip address remove [find interface=\"HA_VRRP\"]\
-	\n/ip firewall filter remove [find comment=\"HA_AUTO\"]\
-	\n/ip service set [find name=\"ftp\"] disabled=yes\
-	\n\
-	\n/interface ethernet enable [find default-name=\"\$haInterface\"] \
 	\n/log warning \"ha_startup: 2\"\
-	\n:while ([:len [/interface find where name=\"\$haInterface\"]] != 1) do={\
-	\n   /log error \"ha_startup: delaying2 for hardware...cant find \$haInterface\"\
-	\n   :delay .1\
+	\n\
+	\n#Spin this initialization code until we succeed. Sometimes RouterOS gives us an error when we try to find an interface\
+	\n#that is in some sort of transient state, unclear why.\
+	\n#https://github.com/svlsResearch/ha-mikrotik/issues/7\
+	\n:global haTmpMac \"\"\
+	\n:global haTmpMaxInitTries 100\
+	\n:global haInitTries 0\
+	\n:while (\$haTmpMac = \"\" && \$haInitTries <= \$haTmpMaxInitTries) do={\
+	\n   :do {\
+	\n      :set haInitTries (\$haInitTries+1)\
+	\n      #Reset the MAC on the single HA interface - if they are connected via a switch, they need to be unique.\
+	\n      /interface ethernet reset-mac-address [find default-name=\"\$haInterface\"]\
+	\n      /ip address remove [find interface=\"\$haInterface\"]\
+	\n      /ip address remove [find comment=\"HA_AUTO\"]\
+	\n      /interface vrrp remove [find name=\"HA_VRRP\"]\
+	\n      /ip address remove [find interface=\"HA_VRRP\"]\
+	\n      /ip firewall filter remove [find comment=\"HA_AUTO\"]\
+	\n      /ip service set [find name=\"ftp\"] disabled=yes\
+	\n      /interface ethernet enable [find default-name=\"\$haInterface\"] \
+	\n      /log warning \"ha_startup: 2.1 \$haInitTries\"\
+	\n      /interface ethernet get [find default-name=\"\$haInterface\"] orig-mac-address\
+	\n      /log warning \"ha_startup: 2.2 \$haInitTries\"\
+	\n      :set haTmpMac [[/interface ethernet get [find default-name=\"\$haInterface\"] orig-mac-address]]\
+	\n      /log warning \"ha_startup: 3 \$haTmpMac \$haInitTries\"\
+	\n   } on-error={\
+	\n      /log error \"ha_startup: delaying2 for hardware...\$haInitTries\"\
+	\n      :delay 1\
+	\n   }\
 	\n}\
-	\n#:execute \":put [/interface ethernet get [find default-name=\\\"\$haInterface\\\"] orig-mac-address]\" file=\"HA_debug2.txt\"\
-	\n#:execute \"/interface print detail\" file=\"HA_debug2_1.txt\"\
-	\n/log warning \"ha_startup: 2.1\"\
-	\n/interface ethernet get [find default-name=\"\$haInterface\"] orig-mac-address\
-	\n/log warning \"ha_startup: 2.2\"\
-	\n:local mac [[/interface ethernet get [find default-name=\"\$haInterface\"] orig-mac-address]]\
-	\n/log warning \"ha_startup: 3\"\
+	\n\
+	\n/log warning \"ha_startup: 3.1 \$haTmpMac \$haInitTries\"\
+	\n\
+	\n:local mac \"\$haTmpMac\"\
+	\n\
 	\n:if (\"\$mac\" = \"\$haMacA\") do {\
 	\n   :global haIdentity \"A\"\
 	\n   /log warning \"I AM A\"\
