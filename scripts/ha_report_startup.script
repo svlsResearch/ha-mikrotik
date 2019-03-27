@@ -13,11 +13,14 @@
 :local delay1Count [:len [/log find where message~"ha_startup.*(delaying1)"]]
 :local delay2Count [:len [/log find where message~"ha_startup.*(delaying2)"]]
 :local uptime [/system resource get uptime]
+:local routerVersion [/system resource get version]
+:local firmwareVersion [/system routerboard get current-firmware]
+
 :global isMaster
 :global haStartupHasRun
 :global haStartupHAVersion
 :global haInitTries
-/log info "ha_startup: ha_report_startup debug haReportTag=1 badCount=$badCount goodCount=$goodCount delay1Count=$delay1Count delay2Count=$delay2Count uptime=$uptime isMaster=$isMaster haInitTries=$haInitTries haStartupHasRun=$haStartupHasRun haStartupHAVersion=$haStartupHAVersion"
+/log info "ha_startup: ha_report_startup debug haReportTag=1 routerVersion=$routerVersion firmwareVersion=$firmwareVersion badCount=$badCount goodCount=$goodCount delay1Count=$delay1Count delay2Count=$delay2Count uptime=$uptime isMaster=$isMaster haInitTries=$haInitTries haStartupHasRun=$haStartupHasRun haStartupHAVersion=$haStartupHAVersion"
 :execute "/log print" file="HA_boot_log.txt"
 
 #Debugging helper for spinning reboots of the standby - you probably don't want to mess with this.
