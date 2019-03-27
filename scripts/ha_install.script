@@ -8,40 +8,40 @@
 :global isMaster
 :global haMacOther
 
-:if ([:len [/interface find where default-name="$haInterface" name="$haInterface"]] != 1) do {
+:if ([:len [/interface find where default-name="$haInterface" name="$haInterface"]] != 1) do={
    :error "Unable to find interface named $haInterface with default-name that matches name. Make sure you don't rename these interfaces, leave default-name as-is."
 }
 
 :local mac [[/interface ethernet get [find default-name="$haInterface"] orig-mac-address]]
-:if ($mac != $haMacA and $mac != $haMacB) do {
+:if ($mac != $haMacA and $mac != $haMacB) do={
    :error "Interface $haInterface MAC $mac does not match (A=$haMacA or B=$haMacB) - please check config\r\nUse orig-mac address!"
 }
 
 :local pingMac $haMacA
-:if ($mac = $haMacA) do {
+:if ($mac = $haMacA) do={
    :set pingMac $haMacB
 }
 
 :put $mac
 :put $pingMac
 
-:if ([/ping $pingMac count=1] = 0) do {
+:if ([/ping $pingMac count=1] = 0) do={
    :error "Are you sure the other device is configured properly? I am unable to ping MAC $pingMac"
 }
 
-:if ([:len [/ip address find where interface="$haInterface" and comment!="HA_AUTO"]] > 0) do {
+:if ([:len [/ip address find where interface="$haInterface" and comment!="HA_AUTO"]] > 0) do={
    :error "Interface $haInterface has IP addresses. HA should completely own the interface and it cannot be used by anything else. Please correct"
 }
 
-:if ([:len [/file find name=HA_backup_beforeHA.backup]] = 0) do {
+:if ([:len [/file find name=HA_backup_beforeHA.backup]] = 0) do={
    system backup save name=HA_backup_beforeHA dont-encrypt=yes
    /export file=HA_backup_beforeHA.rsc
 }
 
-:if (!$isMaster) do {
+:if (!$isMaster) do={
    :put "I am not master - running ha_startup first"
    /system script run "ha_startup"
-} else {
+} else={
    :put "I am already master! Skipping my own bootstrap..."
 }
 
@@ -49,11 +49,11 @@
 :put "#Maybe try: /tool mac-telnet $haMacOther"
 :put "###PASTE THIS ON THE OTHER DEVICE - YOUR CONFIG WILL BE RESET AND LOST!!!###"
 :put ":global mac [[/interface ethernet get [find default-name=\"$haInterface\"] orig-mac-address]]"
-:put ":if (\$mac = \"$haMacA\" and \$mac = \"$haMacB\") do {"
+:put ":if (\$mac = \"$haMacA\" and \$mac = \"$haMacB\") do={"
 :put "   :error \"Interface $haInterface MAC \$mac does not match (A=$haMacA or B=$haMacB) - please check config\\r\\nUse orig-mac address!\""
 :put "}"
 #Try to backup the local device before HA, just in case.
-:put ":if ([:len [/file find name=HA_backup_beforeHA.backup]] = 0) do {"
+:put ":if ([:len [/file find name=HA_backup_beforeHA.backup]] = 0) do={"
 :put "   /system backup save name=HA_backup_beforeHA dont-encrypt=yes"
 :put "   /export file=HA_backup_beforeHA.rsc"
 :put "}"

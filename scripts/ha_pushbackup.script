@@ -2,13 +2,13 @@
 :global haPassword
 :global isMaster
 :global haAddressOther
-:if (!$isMaster) do {
+:if (!$isMaster) do={
    :error "NOT MASTER"
-} else {
+} else={
    #Really? this is the only way to create directories?
    :local mkdirCode ":do { /ip smb shares add comment=HA_AUTO name=mkdir disabled=yes directory=/skins } on-error={}"
 
-   :foreach k in [/file find type="directory"] do={
+   :foreach k in=[/file find type="directory"] do={
       :local xferfile [/file get $k name]
       if ([:pick "$xferfile" 0 3] != "HA_") do={
          :set mkdirCode "$mkdirCode\r\n/ip smb shares set [find comment=HA_AUTO] directory=\"$xferfile\""
@@ -17,7 +17,7 @@
 
    :set mkdirCode "$mkdirCode\r\n/ip smb shares remove [find comment=HA_AUTO]\r\n"
    #eh - good chance to keep files in sync, just delete everything, we will reupload. is this going to reduce life of nvram?
-   :local purgeFilesCode ":foreach k in [/file find type!=\"directory\"] do={ :local xferfile [/file get \$k name]; if ([:pick \"\$xferfile\" 0 3] != \"HA_\") do={ :put \"removing \$xferfile\"; /file remove \$k; } }"
+   :local purgeFilesCode ":foreach k in=[/file find type!=\"directory\"] do={ :local xferfile [/file get \$k name]; if ([:pick \"\$xferfile\" 0 3] != \"HA_\") do={ :put \"removing \$xferfile\"; /file remove \$k; } }"
    :set mkdirCode "$purgeFilesCode;\r\n/delay 2;\r\n$mkdirCode"
 
    /file print file=HA_mkdirs.txt
@@ -25,7 +25,7 @@
    :put "mkdirCode: $mkdirCode end_mkDirCode"
    /tool fetch upload=yes src-path=HA_mkdirs.txt dst-path=HA_mkdirs.auto.rsc address=$haAddressOther user=ha password=$haPassword mode=ftp 
    
-   :foreach k in [/file find type!="directory"] do={
+   :foreach k in=[/file find type!="directory"] do={
       :local xferfile [/file get $k name]
       if ([:pick "$xferfile" 0 3] != "HA_") do={
          :put "Transferring: $xferfile"

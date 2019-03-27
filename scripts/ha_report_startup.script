@@ -1,6 +1,6 @@
 #Attempt to kick the timing clients into a forced update so we get accurate timestamps to syslog on the report.
 :do {/ip cloud force-update} on-error={};
-:if ([/system ntp client get enabled]) do {
+:if ([/system ntp client get enabled]) do={
    /system ntp client set enabled=no
    :delay 16
    /system ntp client set enabled=yes
@@ -21,15 +21,15 @@
 :execute "/log print" file="HA_boot_log.txt"
 
 #Debugging helper for spinning reboots of the standby - you probably don't want to mess with this.
-:if (false) do {
-   :if ($isMaster) do {
+:if (false) do={
+   :if ($isMaster) do={
       #Just because we are master doesnt mean we really are, we could have a failed startup but it is too risky to do anything else.
       :put "I am master - do nothing"
-   } else {
-      :if ($goodCount = 1) do {
+   } else={
+      :if ($goodCount = 1) do={
          :put "REBOOT"
          /system reboot
-      } else {
+      } else={
          :put "STAY"
          #Disable all interfaces if they havent already, so the primary doesnt sneak in and we lose the failed state.
          /interface ethernet disable [find]

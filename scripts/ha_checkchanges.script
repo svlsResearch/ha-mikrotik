@@ -7,7 +7,7 @@
 :global haCheckStandbyVer
 :global haCheckMasterVer
 :do {
-   :if ($isMaster) do {
+   :if ($isMaster) do={
       /file print file=HA_get-version.txt; /file set [find name="HA_get-version.txt"] contents=":global haConfigVer\n[:put \"XXX \$haConfigVer YYYY\"]\n"
          /tool fetch upload=yes src-path=HA_get-version.txt dst-path=HA_get-version.auto.rsc address=$haAddressOther user=ha password=$haPassword mode=ftp 
          /file remove [find name="HA_standby-haConfigVer.txt"]
@@ -20,11 +20,11 @@
          /file remove [find name="HA_standby-haConfigVer.txt"]
          :put "MASTER VERSION: ! $haCheckMasterVer !"
          :put "STANDB VERSION: ! $haCheckStandbyVer !"
-         :if ($haCheckStandbyVer != $haCheckMasterVer) do {
+         :if ($haCheckStandbyVer != $haCheckMasterVer) do={
             :put "NEED TO PUSH"
             :global isStandbyInSync false
             /system script run [find name="ha_pushbackup"]
-         } else {
+         } else={
             :global isStandbyInSync true
             :put "GOOD"
          }

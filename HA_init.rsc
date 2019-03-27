@@ -10,7 +10,7 @@ add name=ha_checkchanges_new owner=admin policy=ftp,reboot,read,write,policy,tes
 	\n:global haCheckStandbyVer\
 	\n:global haCheckMasterVer\
 	\n:do {\
-	\n   :if (\$isMaster) do {\
+	\n   :if (\$isMaster) do={\
 	\n      /file print file=HA_get-version.txt; /file set [find name=\"HA_get-version.txt\"] contents=\":global haConfigVer\\n[:put \\\"XXX \\\$haConfigVer YYYY\\\"]\\n\"\
 	\n         /tool fetch upload=yes src-path=HA_get-version.txt dst-path=HA_get-version.auto.rsc address=\$haAddressOther user=ha password=\$haPassword mode=ftp \
 	\n         /file remove [find name=\"HA_standby-haConfigVer.txt\"]\
@@ -23,11 +23,11 @@ add name=ha_checkchanges_new owner=admin policy=ftp,reboot,read,write,policy,tes
 	\n         /file remove [find name=\"HA_standby-haConfigVer.txt\"]\
 	\n         :put \"MASTER VERSION: ! \$haCheckMasterVer !\"\
 	\n         :put \"STANDB VERSION: ! \$haCheckStandbyVer !\"\
-	\n         :if (\$haCheckStandbyVer != \$haCheckMasterVer) do {\
+	\n         :if (\$haCheckStandbyVer != \$haCheckMasterVer) do={\
 	\n            :put \"NEED TO PUSH\"\
 	\n            :global isStandbyInSync false\
 	\n            /system script run [find name=\"ha_pushbackup\"]\
-	\n         } else {\
+	\n         } else={\
 	\n            :global isStandbyInSync true\
 	\n            :put \"GOOD\"\
 	\n         }\
@@ -62,10 +62,10 @@ add name=ha_functions_new owner=admin policy=ftp,reboot,read,write,policy,test,p
 	\n\
 	\n:global HAInstall do={\
 	\n   #\$HAInstall interface=\"ether8\" macA=\"E1:81:8C:35:13:8C\" macB=\"E1:81:8C:35:10:08\" password=\"a25d89ba41236c40726ff9e7ffee1d202992f61c\"\
-	\n   :if ([:typeof \$interface] = \"nothing\") do {:error \"interface missing\"};\
-	\n   :if ([:typeof \$macA] = \"nothing\") do {:error \"macA missing\"};\
-	\n   :if ([:typeof \$macB] = \"nothing\") do {:error \"macB missing\"};\
-	\n   :if ([:typeof \$password] = \"nothing\") do {:error \"password missing\"};\
+	\n   :if ([:typeof \$interface] = \"nothing\") do={:error \"interface missing\"};\
+	\n   :if ([:typeof \$macA] = \"nothing\") do={:error \"macA missing\"};\
+	\n   :if ([:typeof \$macB] = \"nothing\") do={:error \"macB missing\"};\
+	\n   :if ([:typeof \$password] = \"nothing\") do={:error \"password missing\"};\
 	\n   /system script remove [find name=ha_config_base]\
 	\n   /system script add name=ha_config_base owner=admin policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive source=\":global haPassword \\\"\$password\\\"\\\
 	\n   \\n:global haInterface \\\"\$interface\\\"\\\
@@ -93,40 +93,40 @@ add name=ha_install_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n:global isMaster\
 	\n:global haMacOther\
 	\n\
-	\n:if ([:len [/interface find where default-name=\"\$haInterface\" name=\"\$haInterface\"]] != 1) do {\
+	\n:if ([:len [/interface find where default-name=\"\$haInterface\" name=\"\$haInterface\"]] != 1) do={\
 	\n   :error \"Unable to find interface named \$haInterface with default-name that matches name. Make sure you don't rename these interfaces, leave default-name as-is.\"\
 	\n}\
 	\n\
 	\n:local mac [[/interface ethernet get [find default-name=\"\$haInterface\"] orig-mac-address]]\
-	\n:if (\$mac != \$haMacA and \$mac != \$haMacB) do {\
+	\n:if (\$mac != \$haMacA and \$mac != \$haMacB) do={\
 	\n   :error \"Interface \$haInterface MAC \$mac does not match (A=\$haMacA or B=\$haMacB) - please check config\\r\\nUse orig-mac address!\"\
 	\n}\
 	\n\
 	\n:local pingMac \$haMacA\
-	\n:if (\$mac = \$haMacA) do {\
+	\n:if (\$mac = \$haMacA) do={\
 	\n   :set pingMac \$haMacB\
 	\n}\
 	\n\
 	\n:put \$mac\
 	\n:put \$pingMac\
 	\n\
-	\n:if ([/ping \$pingMac count=1] = 0) do {\
+	\n:if ([/ping \$pingMac count=1] = 0) do={\
 	\n   :error \"Are you sure the other device is configured properly? I am unable to ping MAC \$pingMac\"\
 	\n}\
 	\n\
-	\n:if ([:len [/ip address find where interface=\"\$haInterface\" and comment!=\"HA_AUTO\"]] > 0) do {\
+	\n:if ([:len [/ip address find where interface=\"\$haInterface\" and comment!=\"HA_AUTO\"]] > 0) do={\
 	\n   :error \"Interface \$haInterface has IP addresses. HA should completely own the interface and it cannot be used by anything else. Please correct\"\
 	\n}\
 	\n\
-	\n:if ([:len [/file find name=HA_backup_beforeHA.backup]] = 0) do {\
+	\n:if ([:len [/file find name=HA_backup_beforeHA.backup]] = 0) do={\
 	\n   system backup save name=HA_backup_beforeHA dont-encrypt=yes\
 	\n   /export file=HA_backup_beforeHA.rsc\
 	\n}\
 	\n\
-	\n:if (!\$isMaster) do {\
+	\n:if (!\$isMaster) do={\
 	\n   :put \"I am not master - running ha_startup first\"\
 	\n   /system script run \"ha_startup\"\
-	\n} else {\
+	\n} else={\
 	\n   :put \"I am already master! Skipping my own bootstrap...\"\
 	\n}\
 	\n\
@@ -134,11 +134,11 @@ add name=ha_install_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n:put \"#Maybe try: /tool mac-telnet \$haMacOther\"\
 	\n:put \"###PASTE THIS ON THE OTHER DEVICE - YOUR CONFIG WILL BE RESET AND LOST!!!###\"\
 	\n:put \":global mac [[/interface ethernet get [find default-name=\\\"\$haInterface\\\"] orig-mac-address]]\"\
-	\n:put \":if (\\\$mac = \\\"\$haMacA\\\" and \\\$mac = \\\"\$haMacB\\\") do {\"\
+	\n:put \":if (\\\$mac = \\\"\$haMacA\\\" and \\\$mac = \\\"\$haMacB\\\") do={\"\
 	\n:put \"   :error \\\"Interface \$haInterface MAC \\\$mac does not match (A=\$haMacA or B=\$haMacB) - please check config\\\\r\\\\nUse orig-mac address!\\\"\"\
 	\n:put \"}\"\
 	\n#Try to backup the local device before HA, just in case.\
-	\n:put \":if ([:len [/file find name=HA_backup_beforeHA.backup]] = 0) do {\"\
+	\n:put \":if ([:len [/file find name=HA_backup_beforeHA.backup]] = 0) do={\"\
 	\n:put \"   /system backup save name=HA_backup_beforeHA dont-encrypt=yes\"\
 	\n:put \"   /export file=HA_backup_beforeHA.rsc\"\
 	\n:put \"}\"\
@@ -185,13 +185,13 @@ add name=ha_pushbackup_new owner=admin policy=ftp,reboot,read,write,policy,test,
 	\n:global haPassword\
 	\n:global isMaster\
 	\n:global haAddressOther\
-	\n:if (!\$isMaster) do {\
+	\n:if (!\$isMaster) do={\
 	\n   :error \"NOT MASTER\"\
-	\n} else {\
+	\n} else={\
 	\n   #Really? this is the only way to create directories?\
 	\n   :local mkdirCode \":do { /ip smb shares add comment=HA_AUTO name=mkdir disabled=yes directory=/skins } on-error={}\"\
 	\n\
-	\n   :foreach k in [/file find type=\"directory\"] do={\
+	\n   :foreach k in=[/file find type=\"directory\"] do={\
 	\n      :local xferfile [/file get \$k name]\
 	\n      if ([:pick \"\$xferfile\" 0 3] != \"HA_\") do={\
 	\n         :set mkdirCode \"\$mkdirCode\\r\\n/ip smb shares set [find comment=HA_AUTO] directory=\\\"\$xferfile\\\"\"\
@@ -200,7 +200,7 @@ add name=ha_pushbackup_new owner=admin policy=ftp,reboot,read,write,policy,test,
 	\n\
 	\n   :set mkdirCode \"\$mkdirCode\\r\\n/ip smb shares remove [find comment=HA_AUTO]\\r\\n\"\
 	\n   #eh - good chance to keep files in sync, just delete everything, we will reupload. is this going to reduce life of nvram?\
-	\n   :local purgeFilesCode \":foreach k in [/file find type!=\\\"directory\\\"] do={ :local xferfile [/file get \\\$k name]; if ([:pick \\\"\\\$xferfile\\\" 0 3] != \\\"HA_\\\") do={ :put \\\"removing \\\$xferfile\\\"; /file remove \\\$k; } }\"\
+	\n   :local purgeFilesCode \":foreach k in=[/file find type!=\\\"directory\\\"] do={ :local xferfile [/file get \\\$k name]; if ([:pick \\\"\\\$xferfile\\\" 0 3] != \\\"HA_\\\") do={ :put \\\"removing \\\$xferfile\\\"; /file remove \\\$k; } }\"\
 	\n   :set mkdirCode \"\$purgeFilesCode;\\r\\n/delay 2;\\r\\n\$mkdirCode\"\
 	\n\
 	\n   /file print file=HA_mkdirs.txt\
@@ -208,7 +208,7 @@ add name=ha_pushbackup_new owner=admin policy=ftp,reboot,read,write,policy,test,
 	\n   :put \"mkdirCode: \$mkdirCode end_mkDirCode\"\
 	\n   /tool fetch upload=yes src-path=HA_mkdirs.txt dst-path=HA_mkdirs.auto.rsc address=\$haAddressOther user=ha password=\$haPassword mode=ftp \
 	\n   \
-	\n   :foreach k in [/file find type!=\"directory\"] do={\
+	\n   :foreach k in=[/file find type!=\"directory\"] do={\
 	\n      :local xferfile [/file get \$k name]\
 	\n      if ([:pick \"\$xferfile\" 0 3] != \"HA_\") do={\
 	\n         :put \"Transferring: \$xferfile\"\
@@ -249,7 +249,7 @@ add name=ha_pushbackup_new owner=admin policy=ftp,reboot,read,write,policy,test,
 remove [find name=ha_report_startup_new]
 add name=ha_report_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive source="#Attempt to kick the timing clients into a forced update so we get accurate timestamps to syslog on the report.\
 	\n:do {/ip cloud force-update} on-error={};\
-	\n:if ([/system ntp client get enabled]) do {\
+	\n:if ([/system ntp client get enabled]) do={\
 	\n   /system ntp client set enabled=no\
 	\n   :delay 16\
 	\n   /system ntp client set enabled=yes\
@@ -270,15 +270,15 @@ add name=ha_report_startup_new owner=admin policy=ftp,reboot,read,write,policy,t
 	\n:execute \"/log print\" file=\"HA_boot_log.txt\"\
 	\n\
 	\n#Debugging helper for spinning reboots of the standby - you probably don't want to mess with this.\
-	\n:if (false) do {\
-	\n   :if (\$isMaster) do {\
+	\n:if (false) do={\
+	\n   :if (\$isMaster) do={\
 	\n      #Just because we are master doesnt mean we really are, we could have a failed startup but it is too risky to do anything else.\
 	\n      :put \"I am master - do nothing\"\
-	\n   } else {\
-	\n      :if (\$goodCount = 1) do {\
+	\n   } else={\
+	\n      :if (\$goodCount = 1) do={\
 	\n         :put \"REBOOT\"\
 	\n         /system reboot\
-	\n      } else {\
+	\n      } else={\
 	\n         :put \"STAY\"\
 	\n         #Disable all interfaces if they havent already, so the primary doesnt sneak in and we lose the failed state.\
 	\n         /interface ethernet disable [find]\
@@ -298,12 +298,12 @@ add name=ha_setidentity_new owner=admin policy=ftp,reboot,read,write,policy,test
 	\n:global isMaster\
 	\n:local sysIdentity [/system identity get name]\
 	\n:local haPos [:find \$sysIdentity \"_HA_\" 0]\
-	\nif (\$haPos > 0) do {\
+	\nif (\$haPos > 0) do={\
 	\n   :set sysIdentity [:pick \$sysIdentity 0 \$haPos]\
 	\n}\
-	\n:if (\$isMaster) do {\
+	\n:if (\$isMaster) do={\
 	\n   /system identity set name=\"\$sysIdentity_HA_\$haIdentity_ACTIVE\"\
-	\n} else {\
+	\n} else={\
 	\n   /system identity set name=\"\$sysIdentity_HA_\$haIdentity_STANDBY\"\
 	\n}\
 	\n"
@@ -313,10 +313,10 @@ add name=ha_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n#fires again on newer versions of RouterOS.\
 	\n:global haStartupHasRun\
 	\n:global uptime [/system resource get uptime]\
-	\n:if (\$haStartupHasRun != nil || uptime > 2m) do {\
+	\n:if (\$haStartupHasRun != nil || uptime > 2m) do={\
 	\n   /log warning \"ha_startup: ERROR ATTEMPTED TO RUN AGAIN!!! \$haStartupHasRun \$uptime\"\
 	\n   :put \"ha_startup: ERROR ATTEMPTED TO RUN AGAIN!!! \$haStartupHasRun \$uptime\"\
-	\n} else {\
+	\n} else={\
 	\n:set haStartupHasRun [/system resource get uptime]\
 	\n:execute \"/interface print detail\" file=\"HA_boot_interface_print.txt\"\
 	\n/log warning \"ha_startup: START\"\
@@ -333,7 +333,7 @@ add name=ha_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n}\
 	\n/log warning \"ha_startup: 0.3\"\
 	\n/interface ethernet disable [find]\
-	\n:global haStartupHAVersion \"0.4alpha-test5 - 243933d882594ccafaa7459467eb24570ea53263\"\
+	\n:global haStartupHAVersion \"0.4alpha-test6 - 780488f23c837fa4f3fef17dd39c3c0392edc185\"\
 	\n:global isStandbyInSync false\
 	\n:global isMaster false\
 	\n:global haPassword\
@@ -394,7 +394,7 @@ add name=ha_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n\
 	\n:local mac \"\$haTmpMac\"\
 	\n\
-	\n:if (\"\$mac\" = \"\$haMacA\") do {\
+	\n:if (\"\$mac\" = \"\$haMacA\") do={\
 	\n   :global haIdentity \"A\"\
 	\n   /log warning \"I AM A\"\
 	\n   /ip address add interface=\$haInterface address=\$haAddressA netmask=\$haNetmask comment=\"HA_AUTO\"\
@@ -402,8 +402,8 @@ add name=ha_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n   :global haAddressOther \$haAddressB\
 	\n   :global haMacMe \$haMacA\
 	\n   :global haMacOther \$haMacB\
-	\n} else {\
-	\n   :if (\"\$mac\" = \"\$haMacB\") do {\
+	\n} else={\
+	\n   :if (\"\$mac\" = \"\$haMacB\") do={\
 	\n      :global haIdentity \"B\"\
 	\n      /log warning \"I AM B\"\
 	\n      /ip address add interface=\$haInterface address=\$haAddressB netmask=\$haNetmask comment=\"HA_AUTO\"\
@@ -411,7 +411,7 @@ add name=ha_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n      :global haAddressOther \$haAddressA\
 	\n      :global haMacMe \$haMacB\
 	\n      :global haMacOther \$haMacA\
-	\n   } else {\
+	\n   } else={\
 	\n      #This is a very strange bug...maybe just in the CCR? Sometimes when the unit comes up, ethernet interfaces sometimes have swapped positions?\
 	\n      #A reboot clears this error - it is very odd, I don't know if it is a race condition in hardware initialization or something.\
 	\n      #I'm not sure this covers ALL cases, since it only checks the MAC of the one interface our HA runs over. It might not right now :(\
@@ -431,11 +431,11 @@ add name=ha_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n/log warning \"ha_startup: 4\"\
 	\n\
 	\n#If firewall is empty, place-before=0 won't work. Add first rule.\
-	\n:if ([:len [/ip firewall filter find]] = 0) do {\
+	\n:if ([:len [/ip firewall filter find]] = 0) do={\
 	\n   /log warning \"ha_startup: 4.1\"\
 	\n   /ip firewall filter add chain=output action=accept out-interface=\$haInterface comment=\"HA_AUTO\"\
 	\n   /ip firewall filter add chain=input action=accept in-interface=\$haInterface comment=\"HA_AUTO\"\
-	\n} else {\
+	\n} else={\
 	\n   /log warning \"ha_startup: 4.2\"\
 	\n   /ip firewall filter add chain=output action=accept out-interface=\$haInterface comment=\"HA_AUTO\" place-before=0\
 	\n   /ip firewall filter add chain=input action=accept in-interface=\$haInterface comment=\"HA_AUTO\" place-before=0\
@@ -465,10 +465,10 @@ add name=ha_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n#So you dont get annoyed with constant beeping - try catch because this may fail on some platforms (x86).\
 	\n:do {/system routerboard settings set silent-boot=yes} on-error={};\
 	\n\
-	\n:foreach service in [:toarray \"ftp\"] do={\
+	\n:foreach service in=[:toarray \"ftp\"] do={\
 	\n   :local serviceAddresses \"\"\
 	\n   :foreach k in=[/ip service get [find name=\$service] address] do={\
-	\n      :if (\$k != \"\$haAddressA/32\" and \$k != \"\$haAddressB/32\" and \$k != \"\$haAddressVRRP/32\") do {\
+	\n      :if (\$k != \"\$haAddressA/32\" and \$k != \"\$haAddressB/32\" and \$k != \"\$haAddressVRRP/32\") do={\
 	\n         :set serviceAddresses \"\$serviceAddresses,\$k\"\
 	\n      }\
 	\n   }\
@@ -476,7 +476,7 @@ add name=ha_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n   /ip service set [find name=\$service] address=[:toarray \$serviceAddresses]\
 	\n}\
 	\n\
-	\n:if ([:len [/file find where name=\"HA_run-after-hastartup.rsc\"]] > 0) do {\
+	\n:if ([:len [/file find where name=\"HA_run-after-hastartup.rsc\"]] > 0) do={\
 	\n   /import HA_run-after-hastartup.rsc\
 	\n}\
 	\n/delay 5\
@@ -498,18 +498,18 @@ remove [find name=ha_switchrole_new]
 add name=ha_switchrole_new owner=admin policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive source=":global isMaster\
 	\n:global haAddressOther\
 	\n:global haInterface\
-	\n:if (\$isMaster) do {\
+	\n:if (\$isMaster) do={\
 	\n   :put \"I am master - switching role\"\
 	\n   /system script run [find name=\"ha_pushbackup\"]\
 	\n   :put \"delaying 60\"\
 	\n   /delay 60\
-	\n   :if (\$isMaster && [/ping \$haAddressOther count=1 interface=\$haInterface ttl=1]  >= 1) do {\
+	\n   :if (\$isMaster && [/ping \$haAddressOther count=1 interface=\$haInterface ttl=1]  >= 1) do={\
 	\n      :put \"REBOOTING MYSELF\"\
 	\n      :execute \"/system reboot\"\
-	\n   } else {\
+	\n   } else={\
 	\n      :put \"NOT REBOOTING MYSELF! SLAVE IS NOT UP OR I AM NOT MASTER!\"\
 	\n   }\
-	\n} else {\
+	\n} else={\
 	\n   :put \"I am NOT master - nothing to do\"\
 	\n}\
 	\n"

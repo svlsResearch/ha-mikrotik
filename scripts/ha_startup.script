@@ -3,10 +3,10 @@
 #fires again on newer versions of RouterOS.
 :global haStartupHasRun
 :global uptime [/system resource get uptime]
-:if ($haStartupHasRun != nil || uptime > 2m) do {
+:if ($haStartupHasRun != nil || uptime > 2m) do={
    /log warning "ha_startup: ERROR ATTEMPTED TO RUN AGAIN!!! $haStartupHasRun $uptime"
    :put "ha_startup: ERROR ATTEMPTED TO RUN AGAIN!!! $haStartupHasRun $uptime"
-} else {
+} else={
 :set haStartupHasRun [/system resource get uptime]
 :execute "/interface print detail" file="HA_boot_interface_print.txt"
 /log warning "ha_startup: START"
@@ -84,7 +84,7 @@
 
 :local mac "$haTmpMac"
 
-:if ("$mac" = "$haMacA") do {
+:if ("$mac" = "$haMacA") do={
    :global haIdentity "A"
    /log warning "I AM A"
    /ip address add interface=$haInterface address=$haAddressA netmask=$haNetmask comment="HA_AUTO"
@@ -92,8 +92,8 @@
    :global haAddressOther $haAddressB
    :global haMacMe $haMacA
    :global haMacOther $haMacB
-} else {
-   :if ("$mac" = "$haMacB") do {
+} else={
+   :if ("$mac" = "$haMacB") do={
       :global haIdentity "B"
       /log warning "I AM B"
       /ip address add interface=$haInterface address=$haAddressB netmask=$haNetmask comment="HA_AUTO"
@@ -101,7 +101,7 @@
       :global haAddressOther $haAddressA
       :global haMacMe $haMacB
       :global haMacOther $haMacA
-   } else {
+   } else={
       #This is a very strange bug...maybe just in the CCR? Sometimes when the unit comes up, ethernet interfaces sometimes have swapped positions?
       #A reboot clears this error - it is very odd, I don't know if it is a race condition in hardware initialization or something.
       #I'm not sure this covers ALL cases, since it only checks the MAC of the one interface our HA runs over. It might not right now :(
@@ -121,11 +121,11 @@
 /log warning "ha_startup: 4"
 
 #If firewall is empty, place-before=0 won't work. Add first rule.
-:if ([:len [/ip firewall filter find]] = 0) do {
+:if ([:len [/ip firewall filter find]] = 0) do={
    /log warning "ha_startup: 4.1"
    /ip firewall filter add chain=output action=accept out-interface=$haInterface comment="HA_AUTO"
    /ip firewall filter add chain=input action=accept in-interface=$haInterface comment="HA_AUTO"
-} else {
+} else={
    /log warning "ha_startup: 4.2"
    /ip firewall filter add chain=output action=accept out-interface=$haInterface comment="HA_AUTO" place-before=0
    /ip firewall filter add chain=input action=accept in-interface=$haInterface comment="HA_AUTO" place-before=0
@@ -155,10 +155,10 @@
 #So you dont get annoyed with constant beeping - try catch because this may fail on some platforms (x86).
 :do {/system routerboard settings set silent-boot=yes} on-error={};
 
-:foreach service in [:toarray "ftp"] do={
+:foreach service in=[:toarray "ftp"] do={
    :local serviceAddresses ""
    :foreach k in=[/ip service get [find name=$service] address] do={
-      :if ($k != "$haAddressA/32" and $k != "$haAddressB/32" and $k != "$haAddressVRRP/32") do {
+      :if ($k != "$haAddressA/32" and $k != "$haAddressB/32" and $k != "$haAddressVRRP/32") do={
          :set serviceAddresses "$serviceAddresses,$k"
       }
    }
@@ -166,7 +166,7 @@
    /ip service set [find name=$service] address=[:toarray $serviceAddresses]
 }
 
-:if ([:len [/file find where name="HA_run-after-hastartup.rsc"]] > 0) do {
+:if ([:len [/file find where name="HA_run-after-hastartup.rsc"]] > 0) do={
    /import HA_run-after-hastartup.rsc
 }
 /delay 5

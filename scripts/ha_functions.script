@@ -13,10 +13,10 @@
 
 :global HAInstall do={
    #$HAInstall interface="ether8" macA="E1:81:8C:35:13:8C" macB="E1:81:8C:35:10:08" password="a25d89ba41236c40726ff9e7ffee1d202992f61c"
-   :if ([:typeof $interface] = "nothing") do {:error "interface missing"};
-   :if ([:typeof $macA] = "nothing") do {:error "macA missing"};
-   :if ([:typeof $macB] = "nothing") do {:error "macB missing"};
-   :if ([:typeof $password] = "nothing") do {:error "password missing"};
+   :if ([:typeof $interface] = "nothing") do={:error "interface missing"};
+   :if ([:typeof $macA] = "nothing") do={:error "macA missing"};
+   :if ([:typeof $macB] = "nothing") do={:error "macB missing"};
+   :if ([:typeof $password] = "nothing") do={:error "password missing"};
    /system script remove [find name=ha_config_base]
    /system script add name=ha_config_base owner=admin policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive source=":global haPassword \"$password\"\
    \n:global haInterface \"$interface\"\

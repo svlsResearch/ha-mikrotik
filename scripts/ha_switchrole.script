@@ -1,17 +1,17 @@
 :global isMaster
 :global haAddressOther
 :global haInterface
-:if ($isMaster) do {
+:if ($isMaster) do={
    :put "I am master - switching role"
    /system script run [find name="ha_pushbackup"]
    :put "delaying 60"
    /delay 60
-   :if ($isMaster && [/ping $haAddressOther count=1 interface=$haInterface ttl=1]  >= 1) do {
+   :if ($isMaster && [/ping $haAddressOther count=1 interface=$haInterface ttl=1]  >= 1) do={
       :put "REBOOTING MYSELF"
       :execute "/system reboot"
-   } else {
+   } else={
       :put "NOT REBOOTING MYSELF! SLAVE IS NOT UP OR I AM NOT MASTER!"
    }
-} else {
+} else={
    :put "I am NOT master - nothing to do"
 }
