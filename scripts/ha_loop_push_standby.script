@@ -3,7 +3,7 @@
    :put "$pushCount pushing"
    /system script run [find name="ha_pushbackup"]
    :put "$pushCount push done"
-   :delay 120
+   :delay 200
    /system script run [find name="ha_checkchanges"]
    :put "$pushCount sync ok"
    :delay 10
