@@ -154,6 +154,9 @@ add name=ha_install_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n"
 remove [find name=ha_loop_push_standby_new]
 add name=ha_loop_push_standby_new owner=admin policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive source="#Debugging stress test tool for new RouterOS testing\
+	\n###Helper note for testing (disable automatic schedule, import, loop push):\
+	\n# /system scheduler disable [find name=\"ha_checkchanges\"]; /system scheduler disable [find name=\"ha_auto_pushbackup\"]; \$HALoopPushStandby\
+	\n###\
 	\n:for pushCount from=1 to=10000 do={\
 	\n   :put \"\$pushCount pushing\"\
 	\n   /system script run [find name=\"ha_pushbackup\"]\
@@ -269,7 +272,7 @@ add name=ha_report_startup_new owner=admin policy=ftp,reboot,read,write,policy,t
 	\n:global haStartupHasRun\
 	\n:global haStartupHAVersion\
 	\n:global haInitTries\
-	\n/log info \"ha_startup: ha_report_startup debug haReportTag=1 routerVersion=\$routerVersion firmwareVersion=\$firmwareVersion badCount=\$badCount goodCount=\$goodCount delay1Count=\$delay1Count delay2Count=\$delay2Count uptime=\$uptime isMaster=\$isMaster haInitTries=\$haInitTries haStartupHasRun=\$haStartupHasRun haStartupHAVersion=\$haStartupHAVersion\"\
+	\n/log info \"ha_startup: ha_report_startup debug version=\$routerVersion firmware=\$firmwareVersion badC=\$badCount goodC=\$goodCount delay1C=\$delay1Count delay2C=\$delay2Count uptime=\$uptime isMaster=\$isMaster haInitTries=\$haInitTries haStartupHasRun=\$haStartupHasRun haStartupHAVersion=\$haStartupHAVersion\"\
 	\n:execute \"/log print\" file=\"HA_boot_log.txt\"\
 	\n\
 	\n#Debugging helper for spinning reboots of the standby - you probably don't want to mess with this.\
@@ -336,7 +339,7 @@ add name=ha_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n}\
 	\n/log warning \"ha_startup: 0.3\"\
 	\n/interface ethernet disable [find]\
-	\n:global haStartupHAVersion \"0.5alpha-test1 - b8b50e879bb385b3d366f98acde8f8cb707616f5\"\
+	\n:global haStartupHAVersion \"0.5alpha-test2 - 8b14022883a2b1e541d1579e70e11b6bd023d601\"\
 	\n:global isStandbyInSync false\
 	\n:global isMaster false\
 	\n:global haPassword\

@@ -1,4 +1,7 @@
 #Debugging stress test tool for new RouterOS testing
+###Helper note for testing (disable automatic schedule, import, loop push):
+# /system scheduler disable [find name="ha_checkchanges"]; /system scheduler disable [find name="ha_auto_pushbackup"]; $HALoopPushStandby
+###
 :for pushCount from=1 to=10000 do={
    :put "$pushCount pushing"
    /system script run [find name="ha_pushbackup"]
