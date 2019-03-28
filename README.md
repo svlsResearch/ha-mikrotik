@@ -1,8 +1,8 @@
 # ha-mikrotik (Tested stable)
 High availability code for Mikrotik routers
 
-# Status: April 30th 2017
-This has been tested stable across 6 different pairs of CCR1009s for over a year, there have been multiple adminstrative failover events and a few cases of hardware failovers. The primary RouterOS code is v6.38.1 and there are instances of v6.39 which seem to work without issue.
+# Status: March 28th 2019
+This has been tested stable across 6 different pairs of CCR1009s for over a year, there have been multiple adminstrative failover events and a few cases of hardware failovers. Please ensure you are using compatible hardware, RouterOS, and ha-mikrotik releases.
 
 # Warning
 Please do not test this on production routers. This should be tested in a lab setup with complete out of band serial access.
@@ -30,7 +30,7 @@ Bootstrapped from complete erased routers and then config built up once HA insta
 
 # Installing
 1. Source a pair of matching routers, ideally CCR1009-8g-1s-1s+.
-2. Install RouterOS v6.33.5 and make sure the Routerboard firmware is up date.
+2. Install RouterOS v6.43.13 or v6.44.1 and make sure the Routerboard firmware is up date.
 3. Ensure you have serial connections to both devices.
 4. Reset both routers using the command:
 `/file remove [find]; /system reset-configuration keep-users=no no-defaults=yes skip-backup=yes`
@@ -44,3 +44,21 @@ Bootstrapped from complete erased routers and then config built up once HA insta
 10. Once router B is bootstrapped, it will reboot itself into a basic networking mode. It needs to be pushed the current configuration.
 `$HASyncStandby`
 11. B will now reboot and when it returns, it should be in standby mode. A should be the active router. You can now reboot A and B will takeover.
+
+# Upgrading ha-mikrotik
+1. Download a new release of ha-mikrotik
+2. Upload HA_init.rsc to the active and import it:
+`/import HA_init.rsc`
+3. Run $HAPushStandby on the active, this should push the new code and reboot the standby.
+4. Wait for the standby to come back, login and make sure everythig looks good. (/log print).
+5. Run $HASyncStandby on the active, there should be no changes (unless something else changed on the active inbetween).
+6. *THIS WILL REBOOT THE ACTIVE* Run $HASwitchRole on the active.
+7. Your active is now the previous standby and both are upgraded once the standby boots.
+
+# Rebuilding a hardware failed standby
+Rebuilding failed hardware is similar to a new installation except that we don't need to reset both and don't need to bring in a new HA_init, assuming both RouterOS are compatible.
+Install a compatible version of RouterOS on the new hardware and factory reset the configuration. Connect ether8 and ether8.
+*If A is active, run from A:*
+1. $HAInstall interface=$haInterface macA=$haMacMe macB="[NEW MAC FOR B]" password=$haPassword
+*If B is active, run from B:*
+1. $HAInstall interface=$haInterface macA=$haMacMe macA="[NEW MAC FOR A]" password=$haPassword
