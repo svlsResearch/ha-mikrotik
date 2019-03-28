@@ -49,16 +49,18 @@ Bootstrapped from complete erased routers and then config built up once HA insta
 1. Download a new release of ha-mikrotik
 2. Upload HA_init.rsc to the active and import it:
 `/import HA_init.rsc`
-3. Run $HAPushStandby on the active, this should push the new code and reboot the standby.
+3. Run `$HAPushStandby` on the active, this should push the new code and reboot the standby.
 4. Wait for the standby to come back, login and make sure everythig looks good. (/log print).
-5. Run $HASyncStandby on the active, there should be no changes (unless something else changed on the active inbetween).
-6. *THIS WILL REBOOT THE ACTIVE* Run $HASwitchRole on the active.
+5. Run `$HASyncStandby` on the active, there should be no changes (unless something else changed on the active inbetween).
+6. **THIS WILL REBOOT THE ACTIVE** Run `$HASwitchRole` on the active.
 7. Your active is now the previous standby and both are upgraded once the standby boots.
 
 # Rebuilding a hardware failed standby
 Rebuilding failed hardware is similar to a new installation except that we don't need to reset both and don't need to bring in a new HA_init, assuming both RouterOS are compatible.
 Install a compatible version of RouterOS on the new hardware and factory reset the configuration. Connect ether8 and ether8.
-*If A is active, run from A:*
-1. $HAInstall interface=$haInterface macA=$haMacMe macB="[NEW MAC FOR B]" password=$haPassword
-*If B is active, run from B:*
-1. $HAInstall interface=$haInterface macA=$haMacMe macA="[NEW MAC FOR A]" password=$haPassword
+
+**If A is active, run from A:**
+1. `$HAInstall interface=$haInterface macA=$haMacMe macB="[NEW MAC FOR B]" password=$haPassword`
+
+**If B is active, run from B:**
+1. `$HAInstall interface=$haInterface macA=$haMacMe macA="[NEW MAC FOR A]" password=$haPassword`
