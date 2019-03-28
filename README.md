@@ -63,4 +63,4 @@ Install a compatible version of RouterOS on the new hardware and factory reset t
 1. `$HAInstall interface=$haInterface macA=$haMacMe macB="[NEW MAC FOR B]" password=$haPassword`
 
 **If B is active, run from B:**
-1. `$HAInstall interface=$haInterface macA=$haMacMe macA="[NEW MAC FOR A]" password=$haPassword`
+1. `$HAInstall interface=$haInterface macB=$haMacMe macA="[NEW MAC FOR A]" password=$haPassword`
