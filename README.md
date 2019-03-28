@@ -57,6 +57,7 @@ Bootstrapped from complete erased routers and then config built up once HA insta
 
 # Rebuilding a hardware failed standby
 Rebuilding failed hardware is similar to a new installation except that we don't need to reset both and don't need to bring in a new HA_init, assuming both RouterOS are compatible.
+
 Install a compatible version of RouterOS on the new hardware and factory reset the configuration. Connect ether8 and ether8.
 
 **If A is active, run from A:**
