@@ -58,16 +58,16 @@ Bootstrapped from complete erased routers and then config built up once HA insta
 # Rebuilding a hardware failed standby
 Rebuilding failed hardware is similar to a new installation except that we don't need to reset both and don't need to bring in a new HA_init, assuming both RouterOS are compatible.
 
-Install a compatible version of RouterOS on the new hardware and factory reset the configuration. Connect your new hardware the same exact way the old one was.
+Install a compatible version of RouterOS on the new hardware and factory reset the configuration. Connect your new hardware the same exact way the old one was. We assume you have used the default of ether8 for the $haInterface.
 
 **If A is active, run from A:**
-1. `$HAInstall interface=$haInterface macA=$haMacMe macB="[NEW MAC FOR B]" password=$haPassword`
+1. `$HAInstall interface=$haInterface macA=$haMacMe macB="[MAC_OF_B_ETHER8]" password=$haPassword`
 2. Follow on screen instructions just like original install.
 3. Once the standby comes back, `$HASyncStandby`.
 4. Done.
 
 **If B is active, run from B:**
-1. `$HAInstall interface=$haInterface macB=$haMacMe macA="[NEW MAC FOR A]" password=$haPassword`
+1. `$HAInstall interface=$haInterface macB=$haMacMe macA="[MAC_OF_A_ETHER8]" password=$haPassword`
 2. Follow on screen instructions just like original install.
 3. Once the standby comes back, `$HASyncStandby`.
 4. Done.
