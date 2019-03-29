@@ -1,3 +1,5 @@
+# Warning: Do not use this with any version newer than RouterOS 6.42.11. There is a serious instability issue that I am noticing with the newer RouterOS releases after around 24 hours.
+
 # ha-mikrotik (Tested stable)
 High availability code for Mikrotik routers
 
