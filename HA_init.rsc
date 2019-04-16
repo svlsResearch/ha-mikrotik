@@ -238,10 +238,10 @@ add name=ha_pushbackup_new owner=admin policy=ftp,reboot,read,write,policy,test,
 	\n   /tool fetch upload=yes src-path=HA_run-after-hastartup.txt dst-path=HA_run-after-hastartup.rsc address=\$haAddressOther user=ha password=\$haPassword mode=ftp \
 	\n\
 	\n   /export file=HA_b2s.rsc\
-	\n   /system backup save name=HA_b2s.backup password=p\
+	\n   /system backup save name=HA_b2s.backup password=\$haPassword\
 	\n   /tool fetch upload=yes src-path=HA_b2s.rsc dst-path=HA_b2s.rsc address=\$haAddressOther user=ha password=\$haPassword mode=ftp  \
 	\n   /tool fetch upload=yes src-path=HA_b2s.backup dst-path=HA_b2s.backup address=\$haAddressOther user=ha password=\$haPassword mode=ftp  \
-	\n   /file print file=HA_restore-backup.rsc; /file set [find name=\"HA_restore-backup.rsc.txt\"] contents=\"/system backup load name=HA_b2s.backup password=p\"\
+	\n   /file print file=HA_restore-backup.rsc; /file set [find name=\"HA_restore-backup.rsc.txt\"] contents=\"/system backup load name=HA_b2s.backup password=\$haPassword\"\
 	\n   :do {\
 	\n      /tool fetch upload=yes src-path=HA_restore-backup.rsc.txt dst-path=HA_restore-backup.auto.rsc address=\$haAddressOther user=ha password=\$haPassword mode=ftp \
 	\n   } on-error={\
