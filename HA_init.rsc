@@ -147,7 +147,7 @@ add name=ha_install_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n#Seems to be a race condition between the export and the visibility, delay a bit.\
 	\n:put \"/delay 2\"\
 	\n:put \"/file print file=HA_bootstrap.rsc\"\
-	\n:put \"/file set [find name=HA_bootstrap.rsc] contents=\\\"/ip address add address=\\\\\\\"\$haAddressOther/\$haNetmaskBits\\\\\\\" interface=\$haInterface; /user add name=ha group=full password=\\\\\\\"\$haPassword\\\\\\\";\\\"\"\
+	\n:put \"/file set [find name=HA_bootstrap.rsc] contents=\\\":delay 15; /ip address add address=\\\\\\\"\$haAddressOther/\$haNetmaskBits\\\\\\\" interface=\$haInterface; /user add name=ha group=full password=\\\\\\\"\$haPassword\\\\\\\";\\\"\"\
 	\n:put \"/system reset-configuration no-defaults=yes keep-users=no skip-backup=yes run-after-reset=HA_bootstrap.rsc\"\
 	\n:put \"###END OF PASTE FOR OTHER DEVICE###\"\
 	\n:put \"###\"\
@@ -339,7 +339,7 @@ add name=ha_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n}\
 	\n/log warning \"ha_startup: 0.3\"\
 	\n/interface ethernet disable [find]\
-	\n:global haStartupHAVersion \"0.6 - 8b14022883a2b1e541d1579e70e11b6bd023d601\"\
+	\n:global haStartupHAVersion \"0.6 - eb255c4a21b6d2cb1da9e6fb93e69b50061e9a82\"\
 	\n:global isStandbyInSync false\
 	\n:global isMaster false\
 	\n:global haPassword\

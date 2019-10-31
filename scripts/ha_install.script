@@ -62,7 +62,7 @@
 #Seems to be a race condition between the export and the visibility, delay a bit.
 :put "/delay 2"
 :put "/file print file=HA_bootstrap.rsc"
-:put "/file set [find name=HA_bootstrap.rsc] contents=\"/ip address add address=\\\"$haAddressOther/$haNetmaskBits\\\" interface=$haInterface; /user add name=ha group=full password=\\\"$haPassword\\\";\""
+:put "/file set [find name=HA_bootstrap.rsc] contents=\":delay 15; /ip address add address=\\\"$haAddressOther/$haNetmaskBits\\\" interface=$haInterface; /user add name=ha group=full password=\\\"$haPassword\\\";\""
 :put "/system reset-configuration no-defaults=yes keep-users=no skip-backup=yes run-after-reset=HA_bootstrap.rsc"
 :put "###END OF PASTE FOR OTHER DEVICE###"
 :put "###"
