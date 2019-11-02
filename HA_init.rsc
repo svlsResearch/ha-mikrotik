@@ -147,7 +147,8 @@ add name=ha_install_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n#Seems to be a race condition between the export and the visibility, delay a bit.\
 	\n:put \"/delay 2\"\
 	\n:put \"/file print file=HA_bootstrap.rsc\"\
-	\n:put \"/file set [find name=HA_bootstrap.rsc] contents=\\\":delay 15; /ip address add address=\\\\\\\"\$haAddressOther/\$haNetmaskBits\\\\\\\" interface=\$haInterface; /user add name=ha group=full password=\\\\\\\"\$haPassword\\\\\\\";\\\"\"\
+	\n#Need delays here similar to ha_startup, sometimes the interfaces arent ready when this runs.\
+	\n:put \"/file set [find name=HA_bootstrap.rsc] contents=\\\":local haBootstrapOK false; :while (!\\\\\\\$haBootstrapOK) do={:do { /ip address add address=\\\\\\\"\$haAddressOther/\$haNetmaskBits\\\\\\\" interface=\$haInterface; /user add name=ha group=full password=\\\\\\\"\$haPassword\\\\\\\"; :set haBootstrapOK true;} on-error={/log warning \\\\\\\"ha_startup: 0.0 B bootstrap failed...waiting\\\\\\\"; :delay 5};}\\\"\"\
 	\n:put \"/system reset-configuration no-defaults=yes keep-users=no skip-backup=yes run-after-reset=HA_bootstrap.rsc\"\
 	\n:put \"###END OF PASTE FOR OTHER DEVICE###\"\
 	\n:put \"###\"\
@@ -339,7 +340,7 @@ add name=ha_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n}\
 	\n/log warning \"ha_startup: 0.3\"\
 	\n/interface ethernet disable [find]\
-	\n:global haStartupHAVersion \"0.6 - eb255c4a21b6d2cb1da9e6fb93e69b50061e9a82\"\
+	\n:global haStartupHAVersion \"0.7test2 - 612854009116913bd0da427bc6ba3b33312972e1\"\
 	\n:global isStandbyInSync false\
 	\n:global isMaster false\
 	\n:global haPassword\
@@ -380,6 +381,8 @@ add name=ha_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n      /interface ethernet reset-mac-address [find default-name=\"\$haInterface\"]\
 	\n      /ip address remove [find interface=\"\$haInterface\"]\
 	\n      /ip address remove [find comment=\"HA_AUTO\"]\
+	\n      /interface bridge port remove [find comment=\"HA_AUTO\"]\
+	\n      /interface bridge remove [find comment=\"HA_AUTO\"]\
 	\n      /interface vrrp remove [find name=\"HA_VRRP\"]\
 	\n      /ip address remove [find interface=\"HA_VRRP\"]\
 	\n      /ip firewall filter remove [find comment=\"HA_AUTO\"]\
@@ -389,6 +392,9 @@ add name=ha_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n      /interface ethernet get [find default-name=\"\$haInterface\"] orig-mac-address\
 	\n      /log warning \"ha_startup: 2.2 \$haInitTries\"\
 	\n      :set haTmpMac [[/interface ethernet get [find default-name=\"\$haInterface\"] orig-mac-address]]\
+	\n      /log warning \"ha_startup: 2.3\"\
+	\n      /interface bridge add name=\"bridge-\$haInterface\" comment=\"HA_AUTO\"\
+	\n      /interface bridge port add bridge=\"bridge-\$haInterface\" interface=\"\$haInterface\" comment=\"HA_AUTO\"\
 	\n      /log warning \"ha_startup: 3 \$haTmpMac \$haInitTries\"\
 	\n   } on-error={\
 	\n      /log error \"ha_startup: delaying2 for hardware...\$haInitTries\"\
@@ -403,7 +409,7 @@ add name=ha_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n:if (\"\$mac\" = \"\$haMacA\") do={\
 	\n   :global haIdentity \"A\"\
 	\n   /log warning \"I AM A\"\
-	\n   /ip address add interface=\$haInterface address=\$haAddressA netmask=\$haNetmask comment=\"HA_AUTO\"\
+	\n   /ip address add interface=\"bridge-\$haInterface\" address=\$haAddressA netmask=\$haNetmask comment=\"HA_AUTO\"\
 	\n   :global haAddressMe \$haAddressA\
 	\n   :global haAddressOther \$haAddressB\
 	\n   :global haMacMe \$haMacA\
@@ -412,7 +418,7 @@ add name=ha_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n   :if (\"\$mac\" = \"\$haMacB\") do={\
 	\n      :global haIdentity \"B\"\
 	\n      /log warning \"I AM B\"\
-	\n      /ip address add interface=\$haInterface address=\$haAddressB netmask=\$haNetmask comment=\"HA_AUTO\"\
+	\n      /ip address add interface=\"bridge-\$haInterface\" address=\$haAddressB netmask=\$haNetmask comment=\"HA_AUTO\"\
 	\n      :global haAddressMe \$haAddressB\
 	\n      :global haAddressOther \$haAddressA\
 	\n      :global haMacMe \$haMacB\
@@ -439,17 +445,17 @@ add name=ha_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n#If firewall is empty, place-before=0 won't work. Add first rule.\
 	\n:if ([:len [/ip firewall filter find]] = 0) do={\
 	\n   /log warning \"ha_startup: 4.1\"\
-	\n   /ip firewall filter add chain=output action=accept out-interface=\$haInterface comment=\"HA_AUTO\"\
-	\n   /ip firewall filter add chain=input action=accept in-interface=\$haInterface comment=\"HA_AUTO\"\
+	\n   /ip firewall filter add chain=output action=accept out-interface=\"bridge-\$haInterface\" comment=\"HA_AUTO\"\
+	\n   /ip firewall filter add chain=input action=accept in-interface=\"bridge-\$haInterface\" comment=\"HA_AUTO\"\
 	\n} else={\
 	\n   /log warning \"ha_startup: 4.2\"\
-	\n   /ip firewall filter add chain=output action=accept out-interface=\$haInterface comment=\"HA_AUTO\" place-before=0\
-	\n   /ip firewall filter add chain=input action=accept in-interface=\$haInterface comment=\"HA_AUTO\" place-before=0\
+	\n   /ip firewall filter add chain=output action=accept out-interface=\"bridge-\$haInterface\" comment=\"HA_AUTO\" place-before=0\
+	\n   /ip firewall filter add chain=input action=accept in-interface=\"bridge-\$haInterface\" comment=\"HA_AUTO\" place-before=0\
 	\n}\
 	\n/log warning \"ha_startup: 4.3\"\
 	\n\
 	\n/log warning \"ha_startup: 5\"\
-	\n/interface vrrp add interface=\$haInterface version=3 interval=1 name=HA_VRRP on-backup=\"ha_onbackup\" on-master=\"ha_onmaster\" \
+	\n/interface vrrp add interface=\"bridge-\$haInterface\" version=3 interval=1 name=HA_VRRP on-backup=\"ha_onbackup\" on-master=\"ha_onmaster\"\
 	\n/ip address add address=\$haAddressVRRP netmask=255.255.255.255 interface=HA_VRRP comment=\"HA_AUTO\"\
 	\n\
 	\n/log warning \"ha_startup: 6\"\
