@@ -76,7 +76,7 @@
       /log warning "ha_startup: 2.2 $haInitTries"
       :set haTmpMac [[/interface ethernet get [find default-name="$haInterface"] orig-mac-address]]
       /log warning "ha_startup: 2.3"
-      /interface bridge add name="bridge-$haInterface" comment="HA_AUTO"
+      /interface bridge add name="bridge-$haInterface" protocol-mode=none comment="HA_AUTO"
       /interface bridge port add bridge="bridge-$haInterface" interface="$haInterface" comment="HA_AUTO"
       /log warning "ha_startup: 3 $haTmpMac $haInitTries"
    } on-error={

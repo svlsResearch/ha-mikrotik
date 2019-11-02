@@ -340,7 +340,7 @@ add name=ha_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n}\
 	\n/log warning \"ha_startup: 0.3\"\
 	\n/interface ethernet disable [find]\
-	\n:global haStartupHAVersion \"0.7test2 - 612854009116913bd0da427bc6ba3b33312972e1\"\
+	\n:global haStartupHAVersion \"0.7test3 - a7d76b497c0bab52592196eb7b1345c03707ae40\"\
 	\n:global isStandbyInSync false\
 	\n:global isMaster false\
 	\n:global haPassword\
@@ -393,7 +393,7 @@ add name=ha_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n      /log warning \"ha_startup: 2.2 \$haInitTries\"\
 	\n      :set haTmpMac [[/interface ethernet get [find default-name=\"\$haInterface\"] orig-mac-address]]\
 	\n      /log warning \"ha_startup: 2.3\"\
-	\n      /interface bridge add name=\"bridge-\$haInterface\" comment=\"HA_AUTO\"\
+	\n      /interface bridge add name=\"bridge-\$haInterface\" protocol-mode=none comment=\"HA_AUTO\"\
 	\n      /interface bridge port add bridge=\"bridge-\$haInterface\" interface=\"\$haInterface\" comment=\"HA_AUTO\"\
 	\n      /log warning \"ha_startup: 3 \$haTmpMac \$haInitTries\"\
 	\n   } on-error={\
