@@ -64,6 +64,8 @@
       /interface ethernet reset-mac-address [find default-name="$haInterface"]
       /ip address remove [find interface="$haInterface"]
       /ip address remove [find comment="HA_AUTO"]
+      /interface bridge port remove [find comment="HA_AUTO"]
+      /interface bridge remove [find comment="HA_AUTO"]
       /interface vrrp remove [find name="HA_VRRP"]
       /ip address remove [find interface="HA_VRRP"]
       /ip firewall filter remove [find comment="HA_AUTO"]
@@ -73,6 +75,9 @@
       /interface ethernet get [find default-name="$haInterface"] orig-mac-address
       /log warning "ha_startup: 2.2 $haInitTries"
       :set haTmpMac [[/interface ethernet get [find default-name="$haInterface"] orig-mac-address]]
+      /log warning "ha_startup: 2.3"
+      /interface bridge add name="bridge-$haInterface" comment="HA_AUTO"
+      /interface bridge port add bridge="bridge-$haInterface" interface="$haInterface" comment="HA_AUTO"
       /log warning "ha_startup: 3 $haTmpMac $haInitTries"
    } on-error={
       /log error "ha_startup: delaying2 for hardware...$haInitTries"
@@ -87,7 +92,7 @@
 :if ("$mac" = "$haMacA") do={
    :global haIdentity "A"
    /log warning "I AM A"
-   /ip address add interface=$haInterface address=$haAddressA netmask=$haNetmask comment="HA_AUTO"
+   /ip address add interface="bridge-$haInterface" address=$haAddressA netmask=$haNetmask comment="HA_AUTO"
    :global haAddressMe $haAddressA
    :global haAddressOther $haAddressB
    :global haMacMe $haMacA
@@ -96,7 +101,7 @@
    :if ("$mac" = "$haMacB") do={
       :global haIdentity "B"
       /log warning "I AM B"
-      /ip address add interface=$haInterface address=$haAddressB netmask=$haNetmask comment="HA_AUTO"
+      /ip address add interface="bridge-$haInterface" address=$haAddressB netmask=$haNetmask comment="HA_AUTO"
       :global haAddressMe $haAddressB
       :global haAddressOther $haAddressA
       :global haMacMe $haMacB
@@ -123,17 +128,17 @@
 #If firewall is empty, place-before=0 won't work. Add first rule.
 :if ([:len [/ip firewall filter find]] = 0) do={
    /log warning "ha_startup: 4.1"
-   /ip firewall filter add chain=output action=accept out-interface=$haInterface comment="HA_AUTO"
-   /ip firewall filter add chain=input action=accept in-interface=$haInterface comment="HA_AUTO"
+   /ip firewall filter add chain=output action=accept out-interface="bridge-$haInterface" comment="HA_AUTO"
+   /ip firewall filter add chain=input action=accept in-interface="bridge-$haInterface" comment="HA_AUTO"
 } else={
    /log warning "ha_startup: 4.2"
-   /ip firewall filter add chain=output action=accept out-interface=$haInterface comment="HA_AUTO" place-before=0
-   /ip firewall filter add chain=input action=accept in-interface=$haInterface comment="HA_AUTO" place-before=0
+   /ip firewall filter add chain=output action=accept out-interface="bridge-$haInterface" comment="HA_AUTO" place-before=0
+   /ip firewall filter add chain=input action=accept in-interface="bridge-$haInterface" comment="HA_AUTO" place-before=0
 }
 /log warning "ha_startup: 4.3"
 
 /log warning "ha_startup: 5"
-/interface vrrp add interface=$haInterface version=3 interval=1 name=HA_VRRP on-backup="ha_onbackup" on-master="ha_onmaster" 
+/interface vrrp add interface="bridge-$haInterface" version=3 interval=1 name=HA_VRRP on-backup="ha_onbackup" on-master="ha_onmaster"
 /ip address add address=$haAddressVRRP netmask=255.255.255.255 interface=HA_VRRP comment="HA_AUTO"
 
 /log warning "ha_startup: 6"
