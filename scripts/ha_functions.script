@@ -21,7 +21,8 @@
    /system script add name=ha_config_base owner=admin policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive source=":global haPassword \"$password\"\
    \n:global haInterface \"$interface\"\
    \n:global haMacA \"$macA\"\
-   \n:global haMacB \"$macB\""
+   \n:global haMacB \"$macB\"\
+   \n:global haPreferMac \"\""
    /system script run [find name="ha_install"]
 }
 

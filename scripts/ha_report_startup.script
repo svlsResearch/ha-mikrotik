@@ -20,7 +20,8 @@
 :global haStartupHasRun
 :global haStartupHAVersion
 :global haInitTries
-/log info "ha_startup: ha_report_startup debug version=$routerVersion firmware=$firmwareVersion badC=$badCount goodC=$goodCount delay1C=$delay1Count delay2C=$delay2Count uptime=$uptime isMaster=$isMaster haInitTries=$haInitTries haStartupHasRun=$haStartupHasRun haStartupHAVersion=$haStartupHAVersion"
+:global haPreferMac
+/log info "ha_startup: ha_report_startup debug version=$routerVersion firmware=$firmwareVersion badC=$badCount goodC=$goodCount delay1C=$delay1Count delay2C=$delay2Count uptime=$uptime isMaster=$isMaster haPreferMac=$haPreferMac haInitTries=$haInitTries haStartupHasRun=$haStartupHasRun haStartupHAVersion=$haStartupHAVersion"
 :execute "/log print" file="HA_boot_log.txt"
 
 #Debugging helper for spinning reboots of the standby - you probably don't want to mess with this.

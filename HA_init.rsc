@@ -70,7 +70,8 @@ add name=ha_functions_new owner=admin policy=ftp,reboot,read,write,policy,test,p
 	\n   /system script add name=ha_config_base owner=admin policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive source=\":global haPassword \\\"\$password\\\"\\\
 	\n   \\n:global haInterface \\\"\$interface\\\"\\\
 	\n   \\n:global haMacA \\\"\$macA\\\"\\\
-	\n   \\n:global haMacB \\\"\$macB\\\"\"\
+	\n   \\n:global haMacB \\\"\$macB\\\"\\\
+	\n   \\n:global haPreferMac \\\"\\\"\"\
 	\n   /system script run [find name=\"ha_install\"]\
 	\n}\
 	\n\
@@ -273,7 +274,8 @@ add name=ha_report_startup_new owner=admin policy=ftp,reboot,read,write,policy,t
 	\n:global haStartupHasRun\
 	\n:global haStartupHAVersion\
 	\n:global haInitTries\
-	\n/log info \"ha_startup: ha_report_startup debug version=\$routerVersion firmware=\$firmwareVersion badC=\$badCount goodC=\$goodCount delay1C=\$delay1Count delay2C=\$delay2Count uptime=\$uptime isMaster=\$isMaster haInitTries=\$haInitTries haStartupHasRun=\$haStartupHasRun haStartupHAVersion=\$haStartupHAVersion\"\
+	\n:global haPreferMac\
+	\n/log info \"ha_startup: ha_report_startup debug version=\$routerVersion firmware=\$firmwareVersion badC=\$badCount goodC=\$goodCount delay1C=\$delay1Count delay2C=\$delay2Count uptime=\$uptime isMaster=\$isMaster haPreferMac=\$haPreferMac haInitTries=\$haInitTries haStartupHasRun=\$haStartupHasRun haStartupHAVersion=\$haStartupHAVersion\"\
 	\n:execute \"/log print\" file=\"HA_boot_log.txt\"\
 	\n\
 	\n#Debugging helper for spinning reboots of the standby - you probably don't want to mess with this.\
@@ -340,7 +342,7 @@ add name=ha_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n}\
 	\n/log warning \"ha_startup: 0.3\"\
 	\n/interface ethernet disable [find]\
-	\n:global haStartupHAVersion \"0.7test8 - 4da342ae142162a11eb68440ffbd566c2d97836c\"\
+	\n:global haStartupHAVersion \"0.7test9 - e7ba31271d126207c5dfaa110ffd498f339505c8\"\
 	\n:global isStandbyInSync false\
 	\n:global isMaster false\
 	\n:global haPassword\
@@ -356,6 +358,7 @@ add name=ha_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n:global haMacMe\
 	\n:global haAddressOther\
 	\n:global haAddressMe\
+	\n:global haPreferMac\
 	\n\
 	\n/log warning \"ha_startup: version \$haStartupHAVersion\"\
 	\n\
@@ -440,6 +443,13 @@ add name=ha_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n   }\
 	\n}\
 	\n\
+	\n:local vrrpPriority 100\
+	\n\
+	\n:if (\"\$haMacMe\" = \"\$haPreferMac\") do={\
+	\n   :set vrrpPriority 150\
+	\n   /log warning \"ha_startup: 3.5 haPreferMac=\$haPreferMac is me! new vrrpPriority=\$vrrpPriority\"\
+	\n}\
+	\n\
 	\n/ip route remove [find comment=\"HA_AUTO\"]\
 	\n/ip route add gateway=\$haAddressOther distance=250 comment=HA_AUTO\
 	\n\
@@ -458,7 +468,7 @@ add name=ha_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n/log warning \"ha_startup: 4.3\"\
 	\n\
 	\n/log warning \"ha_startup: 5\"\
-	\n/interface vrrp add interface=\"bridge-\$haInterface\" version=3 interval=1 name=HA_VRRP on-backup=\"ha_onbackup\" on-master=\"ha_onmaster\"\
+	\n/interface vrrp add interface=\"bridge-\$haInterface\" version=3 interval=1 priority=\"\$vrrpPriority\" name=HA_VRRP on-backup=\"ha_onbackup\" on-master=\"ha_onmaster\"\
 	\n/ip address add address=\$haAddressVRRP netmask=255.255.255.255 interface=HA_VRRP comment=\"HA_AUTO\"\
 	\n\
 	\n/log warning \"ha_startup: 6\"\
