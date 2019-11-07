@@ -342,7 +342,7 @@ add name=ha_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n}\
 	\n/log warning \"ha_startup: 0.3\"\
 	\n/interface ethernet disable [find]\
-	\n:global haStartupHAVersion \"0.7test9 - e7ba31271d126207c5dfaa110ffd498f339505c8\"\
+	\n:global haStartupHAVersion \"0.7test10 - 883a58181009918e111a7f53643a1d9ca1fed45b\"\
 	\n:global isStandbyInSync false\
 	\n:global isMaster false\
 	\n:global haPassword\
@@ -524,6 +524,7 @@ add name=ha_switchrole_new owner=admin policy=ftp,reboot,read,write,policy,test,
 	\n:global haAddressOther\
 	\n:global haInterface\
 	\n:global haInterfaceLogical\
+	\n:global haPreferMac\
 	\n\
 	\n:local haPingInterface\
 	\n:if ([:typeof \$haInterfaceLogical] = \"nothing\") do={\
@@ -533,6 +534,11 @@ add name=ha_switchrole_new owner=admin policy=ftp,reboot,read,write,policy,test,
 	\n}\
 	\n\
 	\n:put \"Using ping interface \$haPingInterface\"\
+	\n\
+	\n:if (([:typeof \$haPreferMac] != \"nothing\") && (\$haPreferMac != \"\")) do={\
+	\n   :put \"You are using haPreferMac (\$haPreferMac) - switch role does not make sense.\"\
+	\n   return 0\
+	\n}\
 	\n\
 	\n:if (\$isMaster) do={\
 	\n   :put \"I am master - switching role\"\

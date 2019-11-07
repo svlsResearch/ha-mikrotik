@@ -2,6 +2,7 @@
 :global haAddressOther
 :global haInterface
 :global haInterfaceLogical
+:global haPreferMac
 
 :local haPingInterface
 :if ([:typeof $haInterfaceLogical] = "nothing") do={
@@ -11,6 +12,11 @@
 }
 
 :put "Using ping interface $haPingInterface"
+
+:if (([:typeof $haPreferMac] != "nothing") && ($haPreferMac != "")) do={
+   :put "You are using haPreferMac ($haPreferMac) - switch role does not make sense."
+   return 0
+}
 
 :if ($isMaster) do={
    :put "I am master - switching role"
