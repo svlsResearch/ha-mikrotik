@@ -1,12 +1,30 @@
 :global isMaster
 :global haAddressOther
 :global haInterface
+:global haInterfaceLogical
+
+:local haPingInterface
+:if ([:typeof $haInterfaceLogical] = "nothing") do={
+   :set haPingInterface "$haInterface"
+} else={
+   :set haPingInterface "$haInterfaceLogical"
+}
+
+:put "Using ping interface $haPingInterface"
+
 :if ($isMaster) do={
    :put "I am master - switching role"
    /system script run [find name="ha_pushbackup"]
-   :put "delaying 60"
-   /delay 60
-   :if ($isMaster && [/ping $haAddressOther count=1 interface=$haInterface ttl=1]  >= 1) do={
+   :delay 5
+   :local haWaitCount 0
+   while ([/ping $haAddressOther count=1 interface=$haPingInterface ttl=1]  = 0) do={
+      :set haWaitCount ($haWaitCount+1)
+      :put "Still waiting for standby $haWaitCount..."
+      :delay 1
+   }
+   :put "Standby available $haWaitCount...delaying 5s"
+   /delay 5
+   :if ($isMaster && [/ping $haAddressOther count=1 interface=$haPingInterface ttl=1]  >= 1) do={
       :put "REBOOTING MYSELF"
       :execute "/system reboot"
    } else={

@@ -57,6 +57,8 @@
 :global haTmpMac ""
 :global haTmpMaxInitTries 100
 :global haInitTries 0
+#Used to be backwards compatible with pre-bridge config.
+:global haInterfaceLogical
 :while ($haTmpMac = "" && $haInitTries <= $haTmpMaxInitTries) do={
    :do {
       :set haInitTries ($haInitTries+1)
@@ -76,8 +78,9 @@
       /log warning "ha_startup: 2.2 $haInitTries"
       :set haTmpMac [[/interface ethernet get [find default-name="$haInterface"] orig-mac-address]]
       /log warning "ha_startup: 2.3"
-      /interface bridge add name="bridge-$haInterface" protocol-mode=none comment="HA_AUTO"
+      /interface bridge add name="bridge-$haInterface" protocol-mode=none fast-forward=yes comment="HA_AUTO"
       /interface bridge port add bridge="bridge-$haInterface" interface="$haInterface" comment="HA_AUTO"
+      :set haInterfaceLogical "bridge-$haInterface"
       /log warning "ha_startup: 3 $haTmpMac $haInitTries"
    } on-error={
       /log error "ha_startup: delaying2 for hardware...$haInitTries"

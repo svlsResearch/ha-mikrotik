@@ -340,7 +340,7 @@ add name=ha_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n}\
 	\n/log warning \"ha_startup: 0.3\"\
 	\n/interface ethernet disable [find]\
-	\n:global haStartupHAVersion \"0.7test3 - a7d76b497c0bab52592196eb7b1345c03707ae40\"\
+	\n:global haStartupHAVersion \"0.7test8 - 4da342ae142162a11eb68440ffbd566c2d97836c\"\
 	\n:global isStandbyInSync false\
 	\n:global isMaster false\
 	\n:global haPassword\
@@ -374,6 +374,8 @@ add name=ha_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n:global haTmpMac \"\"\
 	\n:global haTmpMaxInitTries 100\
 	\n:global haInitTries 0\
+	\n#Used to be backwards compatible with pre-bridge config.\
+	\n:global haInterfaceLogical\
 	\n:while (\$haTmpMac = \"\" && \$haInitTries <= \$haTmpMaxInitTries) do={\
 	\n   :do {\
 	\n      :set haInitTries (\$haInitTries+1)\
@@ -393,8 +395,9 @@ add name=ha_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n      /log warning \"ha_startup: 2.2 \$haInitTries\"\
 	\n      :set haTmpMac [[/interface ethernet get [find default-name=\"\$haInterface\"] orig-mac-address]]\
 	\n      /log warning \"ha_startup: 2.3\"\
-	\n      /interface bridge add name=\"bridge-\$haInterface\" protocol-mode=none comment=\"HA_AUTO\"\
+	\n      /interface bridge add name=\"bridge-\$haInterface\" protocol-mode=none fast-forward=yes comment=\"HA_AUTO\"\
 	\n      /interface bridge port add bridge=\"bridge-\$haInterface\" interface=\"\$haInterface\" comment=\"HA_AUTO\"\
+	\n      :set haInterfaceLogical \"bridge-\$haInterface\"\
 	\n      /log warning \"ha_startup: 3 \$haTmpMac \$haInitTries\"\
 	\n   } on-error={\
 	\n      /log error \"ha_startup: delaying2 for hardware...\$haInitTries\"\
@@ -510,12 +513,30 @@ remove [find name=ha_switchrole_new]
 add name=ha_switchrole_new owner=admin policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive source=":global isMaster\
 	\n:global haAddressOther\
 	\n:global haInterface\
+	\n:global haInterfaceLogical\
+	\n\
+	\n:local haPingInterface\
+	\n:if ([:typeof \$haInterfaceLogical] = \"nothing\") do={\
+	\n   :set haPingInterface \"\$haInterface\"\
+	\n} else={\
+	\n   :set haPingInterface \"\$haInterfaceLogical\"\
+	\n}\
+	\n\
+	\n:put \"Using ping interface \$haPingInterface\"\
+	\n\
 	\n:if (\$isMaster) do={\
 	\n   :put \"I am master - switching role\"\
 	\n   /system script run [find name=\"ha_pushbackup\"]\
-	\n   :put \"delaying 60\"\
-	\n   /delay 60\
-	\n   :if (\$isMaster && [/ping \$haAddressOther count=1 interface=\$haInterface ttl=1]  >= 1) do={\
+	\n   :delay 5\
+	\n   :local haWaitCount 0\
+	\n   while ([/ping \$haAddressOther count=1 interface=\$haPingInterface ttl=1]  = 0) do={\
+	\n      :set haWaitCount (\$haWaitCount+1)\
+	\n      :put \"Still waiting for standby \$haWaitCount...\"\
+	\n      :delay 1\
+	\n   }\
+	\n   :put \"Standby available \$haWaitCount...delaying 5s\"\
+	\n   /delay 5\
+	\n   :if (\$isMaster && [/ping \$haAddressOther count=1 interface=\$haPingInterface ttl=1]  >= 1) do={\
 	\n      :put \"REBOOTING MYSELF\"\
 	\n      :execute \"/system reboot\"\
 	\n   } else={\
