@@ -135,7 +135,7 @@ add name=ha_install_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n:put \"#Maybe try: /tool mac-telnet \$haMacOther\"\
 	\n:put \"###PASTE THIS ON THE OTHER DEVICE - YOUR CONFIG WILL BE RESET AND LOST!!!###\"\
 	\n:put \":global mac [[/interface ethernet get [find default-name=\\\"\$haInterface\\\"] orig-mac-address]]\"\
-	\n:put \":if (\\\$mac = \\\"\$haMacA\\\" and \\\$mac = \\\"\$haMacB\\\") do={\"\
+	\n:put \":if (\\\$mac != \\\"\$haMacA\\\" and \\\$mac != \\\"\$haMacB\\\") do={\"\
 	\n:put \"   :error \\\"Interface \$haInterface MAC \\\$mac does not match (A=\$haMacA or B=\$haMacB) - please check config\\\\r\\\\nUse orig-mac address!\\\"\"\
 	\n:put \"}\"\
 	\n#Try to backup the local device before HA, just in case.\
@@ -342,7 +342,7 @@ add name=ha_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n}\
 	\n/log warning \"ha_startup: 0.3\"\
 	\n/interface ethernet disable [find]\
-	\n:global haStartupHAVersion \"0.7test10 - 883a58181009918e111a7f53643a1d9ca1fed45b\"\
+	\n:global haStartupHAVersion \"0.7test11 - a8350c7f1aa87d7280bf0d977e4610e6df3cb189\"\
 	\n:global isStandbyInSync false\
 	\n:global isMaster false\
 	\n:global haPassword\
