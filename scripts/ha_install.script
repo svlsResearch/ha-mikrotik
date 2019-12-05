@@ -49,7 +49,7 @@
 :put "#Maybe try: /tool mac-telnet $haMacOther"
 :put "###PASTE THIS ON THE OTHER DEVICE - YOUR CONFIG WILL BE RESET AND LOST!!!###"
 :put ":global mac [[/interface ethernet get [find default-name=\"$haInterface\"] orig-mac-address]]"
-:put ":if (\$mac = \"$haMacA\" and \$mac = \"$haMacB\") do={"
+:put ":if (\$mac != \"$haMacA\" and \$mac != \"$haMacB\") do={"
 :put "   :error \"Interface $haInterface MAC \$mac does not match (A=$haMacA or B=$haMacB) - please check config\\r\\nUse orig-mac address!\""
 :put "}"
 #Try to backup the local device before HA, just in case.
