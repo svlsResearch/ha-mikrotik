@@ -16,7 +16,14 @@ add name=ha_checkchanges_new owner=admin policy=ftp,reboot,read,write,policy,tes
 	\n         /file remove [find name=\"HA_standby-haConfigVer.txt\"]\
 	\n         /tool fetch upload=no src-path=HA_get-version.auto.log dst-path=HA_standby-haConfigVer.txt address=\$haAddressOther user=ha password=\$haPassword mode=ftp \
 	\n         :local haCheckStandbyVerTmp [/file get [find name=\"HA_standby-haConfigVer.txt\"] contents]\
-	\n         :global haCheckStandbyVer [:pick \$haCheckStandbyVerTmp ([:find \$haCheckStandbyVerTmp \"XXX \"]+4) [:find \$haCheckStandbyVerTmp \" YYYY\"]]\
+	\n         :local xxxOffset [:find \$haCheckStandbyVerTmp \"XXX \"]\
+	\n         :local yyyOffset [:find \$haCheckStandbyVerTmp \" YYYY\"]\
+	\n         #Safety check that auto is running.\
+	\n         :if (([:typeof \$xxxOffset] = \"nil\") || ([:typeof \$yyyOffset] = \"nil\")) do={\
+	\n            :put \"ha_checkchanges: unable to find xxx/yyy! is auto working on this platform? xxxOffset: \$xxxOffset yyyOffset: \$yyyOffset\"\
+	\n            :error \"ha_checkchanges: unable to find xxx/yyy! is auto working on this platform? xxxOffset: \$xxxOffset yyyOffset: \$yyyOffset \$haCheckStandbyVerTmp\"\
+	\n         }\
+	\n         :global haCheckStandbyVer [:pick \$haCheckStandbyVerTmp (\$xxxOffset+4) \$yyyOffset]\
 	\n         :global haMasterConfigVer\
 	\n         [/system script run [find name=\"ha_setconfigver\"]]\
 	\n         :global haCheckMasterVer \$haMasterConfigVer\
@@ -325,12 +332,12 @@ add name=ha_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n:global haAllowBootstrap\
 	\n:global haStartupHasRun\
 	\n:global uptime [/system resource get uptime]\
-	\n:if (\$haAllowBootstrap = nil && (\$haStartupHasRun != nil || uptime > 2m)) do={\
+	\n:if (!\$haAllowBootstrap && ([:typeof \$haStartupHasRun] != \"nothing\" || uptime > 2m)) do={\
 	\n   /log warning \"ha_startup: ERROR ATTEMPTED TO RUN AGAIN!!! \$haStartupHasRun \$uptime\"\
 	\n   :error \"ha_startup: ERROR ATTEMPTED TO RUN AGAIN!!! \$haStartupHasRun \$uptime\"\
 	\n} else={\
 	\n:set haStartupHasRun [/system resource get uptime]\
-	\n:set haAllowBootstrap nil\
+	\n:set haAllowBootstrap false\
 	\n:execute \"/interface print detail\" file=\"HA_boot_interface_print.txt\"\
 	\n/log warning \"ha_startup: START\"\
 	\n/system script run [find name=ha_functions]\
@@ -346,7 +353,7 @@ add name=ha_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n}\
 	\n/log warning \"ha_startup: 0.3\"\
 	\n/interface ethernet disable [find]\
-	\n:global haStartupHAVersion \"0.7test13 - 1460d6d3436e1904a39d130cd5c22a14b09c967a\"\
+	\n:global haStartupHAVersion \"0.7test14 - 8cc3b3dee70854ad2676fc2b73922b07d8c64019\"\
 	\n:global isStandbyInSync false\
 	\n:global isMaster false\
 	\n:global haPassword\
@@ -472,7 +479,7 @@ add name=ha_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n/log warning \"ha_startup: 4.3\"\
 	\n\
 	\n/log warning \"ha_startup: 5\"\
-	\n/interface vrrp add interface=\"bridge-\$haInterface\" version=3 interval=1 priority=\"\$vrrpPriority\" name=HA_VRRP on-backup=\"ha_onbackup\" on-master=\"ha_onmaster\"\
+	\n/interface vrrp add interface=\"bridge-\$haInterface\" version=3 interval=1 priority=\"\$vrrpPriority\" name=HA_VRRP on-backup=\"ha_onbackup\" on-master=\"ha_onmaster\" disabled=yes\
 	\n/ip address add address=\$haAddressVRRP netmask=255.255.255.255 interface=HA_VRRP comment=\"HA_AUTO\"\
 	\n\
 	\n/log warning \"ha_startup: 6\"\
@@ -511,6 +518,10 @@ add name=ha_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n/delay 5\
 	\n#We need FTP to do our HA work\
 	\n/ip service set [find name=\"ftp\"] disabled=no\
+	\n\
+	\n/log warning \"ha_startup: 9\"\
+	\n/interface vrrp set [find interface=\"bridge-\$haInterface\"] disabled=no\
+	\n/log warning \"ha_startup: 9.1\"\
 	\n\
 	\n/log warning \"ha_startup: DONE\"\
 	\n:put \"ha_startup: DONE\"\
