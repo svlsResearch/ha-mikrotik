@@ -4,12 +4,12 @@
 :global haAllowBootstrap
 :global haStartupHasRun
 :global uptime [/system resource get uptime]
-:if ($haAllowBootstrap = nil && ($haStartupHasRun != nil || uptime > 2m)) do={
+:if (!$haAllowBootstrap && ([:typeof $haStartupHasRun] != "nothing" || uptime > 2m)) do={
    /log warning "ha_startup: ERROR ATTEMPTED TO RUN AGAIN!!! $haStartupHasRun $uptime"
    :error "ha_startup: ERROR ATTEMPTED TO RUN AGAIN!!! $haStartupHasRun $uptime"
 } else={
 :set haStartupHasRun [/system resource get uptime]
-:set haAllowBootstrap nil
+:set haAllowBootstrap false
 :execute "/interface print detail" file="HA_boot_interface_print.txt"
 /log warning "ha_startup: START"
 /system script run [find name=ha_functions]
@@ -151,7 +151,7 @@
 /log warning "ha_startup: 4.3"
 
 /log warning "ha_startup: 5"
-/interface vrrp add interface="bridge-$haInterface" version=3 interval=1 priority="$vrrpPriority" name=HA_VRRP on-backup="ha_onbackup" on-master="ha_onmaster"
+/interface vrrp add interface="bridge-$haInterface" version=3 interval=1 priority="$vrrpPriority" name=HA_VRRP on-backup="ha_onbackup" on-master="ha_onmaster" disabled=yes
 /ip address add address=$haAddressVRRP netmask=255.255.255.255 interface=HA_VRRP comment="HA_AUTO"
 
 /log warning "ha_startup: 6"
@@ -190,6 +190,10 @@
 /delay 5
 #We need FTP to do our HA work
 /ip service set [find name="ftp"] disabled=no
+
+/log warning "ha_startup: 9"
+/interface vrrp set [find interface="bridge-$haInterface"] disabled=no
+/log warning "ha_startup: 9.1"
 
 /log warning "ha_startup: DONE"
 :put "ha_startup: DONE"
