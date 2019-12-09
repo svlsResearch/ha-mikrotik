@@ -327,7 +327,7 @@ add name=ha_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n:global uptime [/system resource get uptime]\
 	\n:if (\$haAllowBootstrap = nil && (\$haStartupHasRun != nil || uptime > 2m)) do={\
 	\n   /log warning \"ha_startup: ERROR ATTEMPTED TO RUN AGAIN!!! \$haStartupHasRun \$uptime\"\
-	\n   :put \"ha_startup: ERROR ATTEMPTED TO RUN AGAIN!!! \$haStartupHasRun \$uptime\"\
+	\n   :error \"ha_startup: ERROR ATTEMPTED TO RUN AGAIN!!! \$haStartupHasRun \$uptime\"\
 	\n} else={\
 	\n:set haStartupHasRun [/system resource get uptime]\
 	\n:set haAllowBootstrap nil\
@@ -346,7 +346,7 @@ add name=ha_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n}\
 	\n/log warning \"ha_startup: 0.3\"\
 	\n/interface ethernet disable [find]\
-	\n:global haStartupHAVersion \"0.7test12 - 30abe36f17d8f68efbeae2ad0a22bca2a286cd1b\"\
+	\n:global haStartupHAVersion \"0.7test13 - 1460d6d3436e1904a39d130cd5c22a14b09c967a\"\
 	\n:global isStandbyInSync false\
 	\n:global isMaster false\
 	\n:global haPassword\
