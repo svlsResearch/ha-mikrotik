@@ -126,6 +126,8 @@ add name=ha_install_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n\
 	\n:if (!\$isMaster) do={\
 	\n   :put \"I am not master - running ha_startup first\"\
+	\n   :global haAllowBootstrap\
+	\n   :set haAllowBootstrap true\
 	\n   /system script run \"ha_startup\"\
 	\n} else={\
 	\n   :put \"I am already master! Skipping my own bootstrap...\"\
@@ -320,13 +322,15 @@ remove [find name=ha_startup_new]
 add name=ha_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive source="#:do {\
 	\n#Prevent double running of the startup. Is there a bug in the scheduler? It seems that sometimes our start-time=startup ha_startup\
 	\n#fires again on newer versions of RouterOS.\
+	\n:global haAllowBootstrap\
 	\n:global haStartupHasRun\
 	\n:global uptime [/system resource get uptime]\
-	\n:if (\$haStartupHasRun != nil || uptime > 2m) do={\
+	\n:if (\$haAllowBootstrap = nil && (\$haStartupHasRun != nil || uptime > 2m)) do={\
 	\n   /log warning \"ha_startup: ERROR ATTEMPTED TO RUN AGAIN!!! \$haStartupHasRun \$uptime\"\
 	\n   :put \"ha_startup: ERROR ATTEMPTED TO RUN AGAIN!!! \$haStartupHasRun \$uptime\"\
 	\n} else={\
 	\n:set haStartupHasRun [/system resource get uptime]\
+	\n:set haAllowBootstrap nil\
 	\n:execute \"/interface print detail\" file=\"HA_boot_interface_print.txt\"\
 	\n/log warning \"ha_startup: START\"\
 	\n/system script run [find name=ha_functions]\
@@ -342,7 +346,7 @@ add name=ha_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n}\
 	\n/log warning \"ha_startup: 0.3\"\
 	\n/interface ethernet disable [find]\
-	\n:global haStartupHAVersion \"0.7test11 - a8350c7f1aa87d7280bf0d977e4610e6df3cb189\"\
+	\n:global haStartupHAVersion \"0.7test12 - 30abe36f17d8f68efbeae2ad0a22bca2a286cd1b\"\
 	\n:global isStandbyInSync false\
 	\n:global isMaster false\
 	\n:global haPassword\

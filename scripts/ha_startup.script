@@ -1,13 +1,15 @@
 #:do {
 #Prevent double running of the startup. Is there a bug in the scheduler? It seems that sometimes our start-time=startup ha_startup
 #fires again on newer versions of RouterOS.
+:global haAllowBootstrap
 :global haStartupHasRun
 :global uptime [/system resource get uptime]
-:if ($haStartupHasRun != nil || uptime > 2m) do={
+:if ($haAllowBootstrap = nil && ($haStartupHasRun != nil || uptime > 2m)) do={
    /log warning "ha_startup: ERROR ATTEMPTED TO RUN AGAIN!!! $haStartupHasRun $uptime"
    :put "ha_startup: ERROR ATTEMPTED TO RUN AGAIN!!! $haStartupHasRun $uptime"
 } else={
 :set haStartupHasRun [/system resource get uptime]
+:set haAllowBootstrap nil
 :execute "/interface print detail" file="HA_boot_interface_print.txt"
 /log warning "ha_startup: START"
 /system script run [find name=ha_functions]

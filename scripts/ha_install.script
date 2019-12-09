@@ -40,6 +40,8 @@
 
 :if (!$isMaster) do={
    :put "I am not master - running ha_startup first"
+   :global haAllowBootstrap
+   :set haAllowBootstrap true
    /system script run "ha_startup"
 } else={
    :put "I am already master! Skipping my own bootstrap..."
