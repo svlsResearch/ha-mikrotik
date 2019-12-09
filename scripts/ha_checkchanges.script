@@ -13,7 +13,14 @@
          /file remove [find name="HA_standby-haConfigVer.txt"]
          /tool fetch upload=no src-path=HA_get-version.auto.log dst-path=HA_standby-haConfigVer.txt address=$haAddressOther user=ha password=$haPassword mode=ftp 
          :local haCheckStandbyVerTmp [/file get [find name="HA_standby-haConfigVer.txt"] contents]
-         :global haCheckStandbyVer [:pick $haCheckStandbyVerTmp ([:find $haCheckStandbyVerTmp "XXX "]+4) [:find $haCheckStandbyVerTmp " YYYY"]]
+         :local xxxOffset [:find $haCheckStandbyVerTmp "XXX "]
+         :local yyyOffset [:find $haCheckStandbyVerTmp " YYYY"]
+         #Safety check that auto is running.
+         :if (([:typeof $xxxOffset] = "nil") || ([:typeof $yyyOffset] = "nil")) do={
+            :put "ha_checkchanges: unable to find xxx/yyy! is auto working on this platform? xxxOffset: $xxxOffset yyyOffset: $yyyOffset"
+            :error "ha_checkchanges: unable to find xxx/yyy! is auto working on this platform? xxxOffset: $xxxOffset yyyOffset: $yyyOffset $haCheckStandbyVerTmp"
+         }
+         :global haCheckStandbyVer [:pick $haCheckStandbyVerTmp ($xxxOffset+4) $yyyOffset]
          :global haMasterConfigVer
          [/system script run [find name="ha_setconfigver"]]
          :global haCheckMasterVer $haMasterConfigVer
