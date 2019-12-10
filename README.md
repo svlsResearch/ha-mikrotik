@@ -28,6 +28,9 @@ RouterOS v6.33.5
 Routerboard firmware 3.27
 Bootstrapped from complete erased routers and then config built up once HA installed.
 
+# Video demonstrating/explaining ha-mikrotik by The Network Berg
+[MIkrotik - REAL HA Configuration](https://www.youtube.com/watch?v=GEef9P8wwxs)
+
 # Installing
 1. Source a pair of matching routers, ideally CCR1009-8g-1s-1s+.
 2. Install RouterOS v6.43.13 or v6.44.1 and make sure the Routerboard firmware is up date.
