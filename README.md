@@ -35,7 +35,7 @@ Bootstrapped from complete erased routers and then config built up once HA insta
 
 # Installing
 1. Source a pair of matching routers, ideally CCR1009-8g-1s-1s+.
-2. Install RouterOS v6.43.13 or v6.44.1 and make sure the Routerboard firmware is up date.
+2. Install RouterOS v6.44.6 and make sure the Routerboard firmware is up date.
 3. Ensure you have serial connections to both devices.
 4. Reset both routers using the command:
 `/file remove [find]; /system reset-configuration keep-users=no no-defaults=yes skip-backup=yes`
