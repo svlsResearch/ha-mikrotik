@@ -8,7 +8,7 @@
 :global haCheckMasterVer
 :do {
    :if ($isMaster) do={
-      /file print file=HA_get-version.txt; /file set [find name="HA_get-version.txt"] contents=":global haConfigVer\n[:put \"XXX \$haConfigVer YYYY\"]\n"
+      /file print file=HA_get-version.txt; /file set [find name="HA_get-version.txt"] contents=":global haConfigVer\n[:put \"XXX \$haConfigVer YYYY\"]\n\n\n\n"
          /tool fetch upload=yes src-path=HA_get-version.txt dst-path=HA_get-version.auto.rsc address=$haAddressOther user=ha password=$haPassword mode=ftp 
          /file remove [find name="HA_standby-haConfigVer.txt"]
          /tool fetch upload=no src-path=HA_get-version.auto.log dst-path=HA_standby-haConfigVer.txt address=$haAddressOther user=ha password=$haPassword mode=ftp 
@@ -16,6 +16,7 @@
          :local xxxOffset [:find $haCheckStandbyVerTmp "XXX "]
          :local yyyOffset [:find $haCheckStandbyVerTmp " YYYY"]
          #Safety check that auto is running.
+         #:put $haCheckStandbyVerTmp
          :if (([:typeof $xxxOffset] = "nil") || ([:typeof $yyyOffset] = "nil")) do={
             :put "ha_checkchanges: unable to find xxx/yyy! is auto working on this platform? xxxOffset: $xxxOffset yyyOffset: $yyyOffset"
             :error "ha_checkchanges: unable to find xxx/yyy! is auto working on this platform? xxxOffset: $xxxOffset yyyOffset: $yyyOffset $haCheckStandbyVerTmp"

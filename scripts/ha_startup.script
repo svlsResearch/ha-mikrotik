@@ -19,7 +19,7 @@
 :global haInterface
 #Sometimes the hardware isn't initialized by the time we get here. Wait until we can see the interface.
 #https://github.com/svlsResearch/ha-mikrotik/issues/1
-:while ([:len [/interface find where name="$haInterface"]] != 1) do={
+:while ([:len [/interface find where default-name="$haInterface"]] != 1) do={
    /log error "ha_startup: delaying1 for hardware...cant find $haInterface"
    :delay .1
 }
@@ -58,6 +58,7 @@
 #that is in some sort of transient state, unclear why.
 #https://github.com/svlsResearch/ha-mikrotik/issues/7
 :global haTmpMac ""
+:global haTmpInterfaceName ""
 :global haTmpMaxInitTries 100
 :global haInitTries 0
 #Used to be backwards compatible with pre-bridge config.
@@ -80,9 +81,10 @@
       /interface ethernet get [find default-name="$haInterface"] orig-mac-address
       /log warning "ha_startup: 2.2 $haInitTries"
       :set haTmpMac [[/interface ethernet get [find default-name="$haInterface"] orig-mac-address]]
+      :set haTmpInterfaceName [[/interface ethernet get [find default-name="$haInterface"] name]]
       /log warning "ha_startup: 2.3"
       /interface bridge add name="bridge-$haInterface" protocol-mode=none fast-forward=yes comment="HA_AUTO"
-      /interface bridge port add bridge="bridge-$haInterface" interface="$haInterface" comment="HA_AUTO"
+      /interface bridge port add bridge="bridge-$haInterface" interface="$haTmpInterfaceName" comment="HA_AUTO"
       :set haInterfaceLogical "bridge-$haInterface"
       /log warning "ha_startup: 3 $haTmpMac $haInitTries"
    } on-error={

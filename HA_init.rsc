@@ -11,7 +11,7 @@ add name=ha_checkchanges_new owner=admin policy=ftp,reboot,read,write,policy,tes
 	\n:global haCheckMasterVer\
 	\n:do {\
 	\n   :if (\$isMaster) do={\
-	\n      /file print file=HA_get-version.txt; /file set [find name=\"HA_get-version.txt\"] contents=\":global haConfigVer\\n[:put \\\"XXX \\\$haConfigVer YYYY\\\"]\\n\"\
+	\n      /file print file=HA_get-version.txt; /file set [find name=\"HA_get-version.txt\"] contents=\":global haConfigVer\\n[:put \\\"XXX \\\$haConfigVer YYYY\\\"]\\n\\n\\n\\n\"\
 	\n         /tool fetch upload=yes src-path=HA_get-version.txt dst-path=HA_get-version.auto.rsc address=\$haAddressOther user=ha password=\$haPassword mode=ftp \
 	\n         /file remove [find name=\"HA_standby-haConfigVer.txt\"]\
 	\n         /tool fetch upload=no src-path=HA_get-version.auto.log dst-path=HA_standby-haConfigVer.txt address=\$haAddressOther user=ha password=\$haPassword mode=ftp \
@@ -19,6 +19,7 @@ add name=ha_checkchanges_new owner=admin policy=ftp,reboot,read,write,policy,tes
 	\n         :local xxxOffset [:find \$haCheckStandbyVerTmp \"XXX \"]\
 	\n         :local yyyOffset [:find \$haCheckStandbyVerTmp \" YYYY\"]\
 	\n         #Safety check that auto is running.\
+	\n         #:put \$haCheckStandbyVerTmp\
 	\n         :if (([:typeof \$xxxOffset] = \"nil\") || ([:typeof \$yyyOffset] = \"nil\")) do={\
 	\n            :put \"ha_checkchanges: unable to find xxx/yyy! is auto working on this platform? xxxOffset: \$xxxOffset yyyOffset: \$yyyOffset\"\
 	\n            :error \"ha_checkchanges: unable to find xxx/yyy! is auto working on this platform? xxxOffset: \$xxxOffset yyyOffset: \$yyyOffset \$haCheckStandbyVerTmp\"\
@@ -347,13 +348,13 @@ add name=ha_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n:global haInterface\
 	\n#Sometimes the hardware isn't initialized by the time we get here. Wait until we can see the interface.\
 	\n#https://github.com/svlsResearch/ha-mikrotik/issues/1\
-	\n:while ([:len [/interface find where name=\"\$haInterface\"]] != 1) do={\
+	\n:while ([:len [/interface find where default-name=\"\$haInterface\"]] != 1) do={\
 	\n   /log error \"ha_startup: delaying1 for hardware...cant find \$haInterface\"\
 	\n   :delay .1\
 	\n}\
 	\n/log warning \"ha_startup: 0.3\"\
 	\n/interface ethernet disable [find]\
-	\n:global haStartupHAVersion \"0.7test14 - 8cc3b3dee70854ad2676fc2b73922b07d8c64019\"\
+	\n:global haStartupHAVersion \"0.7test15 - de3cd22b6c4882782ab0c7bf2903cdce9668264c\"\
 	\n:global isStandbyInSync false\
 	\n:global isMaster false\
 	\n:global haPassword\
@@ -386,6 +387,7 @@ add name=ha_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n#that is in some sort of transient state, unclear why.\
 	\n#https://github.com/svlsResearch/ha-mikrotik/issues/7\
 	\n:global haTmpMac \"\"\
+	\n:global haTmpInterfaceName \"\"\
 	\n:global haTmpMaxInitTries 100\
 	\n:global haInitTries 0\
 	\n#Used to be backwards compatible with pre-bridge config.\
@@ -408,9 +410,10 @@ add name=ha_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n      /interface ethernet get [find default-name=\"\$haInterface\"] orig-mac-address\
 	\n      /log warning \"ha_startup: 2.2 \$haInitTries\"\
 	\n      :set haTmpMac [[/interface ethernet get [find default-name=\"\$haInterface\"] orig-mac-address]]\
+	\n      :set haTmpInterfaceName [[/interface ethernet get [find default-name=\"\$haInterface\"] name]]\
 	\n      /log warning \"ha_startup: 2.3\"\
 	\n      /interface bridge add name=\"bridge-\$haInterface\" protocol-mode=none fast-forward=yes comment=\"HA_AUTO\"\
-	\n      /interface bridge port add bridge=\"bridge-\$haInterface\" interface=\"\$haInterface\" comment=\"HA_AUTO\"\
+	\n      /interface bridge port add bridge=\"bridge-\$haInterface\" interface=\"\$haTmpInterfaceName\" comment=\"HA_AUTO\"\
 	\n      :set haInterfaceLogical \"bridge-\$haInterface\"\
 	\n      /log warning \"ha_startup: 3 \$haTmpMac \$haInitTries\"\
 	\n   } on-error={\
