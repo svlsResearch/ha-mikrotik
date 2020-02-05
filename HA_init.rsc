@@ -349,6 +349,9 @@ add name=ha_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n/system script run [find name=\"ha_config\"]\
 	\n/log warning \"ha_startup: 0.2\"\
 	\n:global haInterface\
+	\n#Remove HA_VRRP on startup to avoid this interface becoming master on slave device before \$haInterface\
+	\n#has been initialized successfully\
+	\n/interface vrrp remove [find name=\"HA_VRRP\"]\
 	\n#Sometimes the hardware isn't initialized by the time we get here. Wait until we can see the interface.\
 	\n#https://github.com/svlsResearch/ha-mikrotik/issues/1\
 	\n:while ([:len [/interface find where default-name=\"\$haInterface\"]] != 1) do={\
@@ -358,7 +361,7 @@ add name=ha_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n/log warning \"ha_startup: 0.3\"\
 	\n/interface bonding disable [find]\
 	\n/interface ethernet disable [find]\
-	\n:global haStartupHAVersion \"0.7test15 - 31e4361ef1f4ce723707aecd475b084a8e109730\"\
+	\n:global haStartupHAVersion \"0.7test15 - 541203e4fb6938564b5514aee9f6f9394646da7c\"\
 	\n:global isStandbyInSync false\
 	\n:global isMaster false\
 	\n:global haPassword\
