@@ -183,6 +183,7 @@ remove [find name=ha_onbackup_new]
 add name=ha_onbackup_new owner=admin policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive source=":global isMaster false\
 	\n:global haNetmaskBits\
 	\n:global haInterface\
+	\n/interface bonding disable [find]\
 	\n/interface ethernet disable [find default-name!=\"\$haInterface\"]\
 	\n:execute \"ha_setidentity\"\
 	\n:do { :local k [/system script find name=\"on_backup\"]; if ([:len \$k] = 1) do={ /system script run \$k } } on-error={ :put \"on_backup failed\" }\
@@ -191,6 +192,7 @@ remove [find name=ha_onmaster_new]
 add name=ha_onmaster_new owner=admin policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive source=":global isMaster true\
 	\n:global haNetmaskBits\
 	\n:global haInterface\
+	\n/interface bonding enable [find]\
 	\n/interface ethernet enable [find]\
 	\n:execute \"ha_setidentity\"\
 	\n:do { :local k [/system script find name=\"on_master\"]; if ([:len \$k] = 1) do={ /system script run \$k } } on-error={ :put \"on_master failed\" }\
@@ -300,6 +302,7 @@ add name=ha_report_startup_new owner=admin policy=ftp,reboot,read,write,policy,t
 	\n      } else={\
 	\n         :put \"STAY\"\
 	\n         #Disable all interfaces if they havent already, so the primary doesnt sneak in and we lose the failed state.\
+	\n         /interface bonding disable [find]\
 	\n         /interface ethernet disable [find]\
 	\n      }\
 	\n   }\
@@ -353,8 +356,9 @@ add name=ha_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n   :delay .1\
 	\n}\
 	\n/log warning \"ha_startup: 0.3\"\
+	\n/interface bonding disable [find]\
 	\n/interface ethernet disable [find]\
-	\n:global haStartupHAVersion \"0.7test15 - de3cd22b6c4882782ab0c7bf2903cdce9668264c\"\
+	\n:global haStartupHAVersion \"0.7test15 - 31e4361ef1f4ce723707aecd475b084a8e109730\"\
 	\n:global isStandbyInSync false\
 	\n:global isMaster false\
 	\n:global haPassword\
@@ -378,7 +382,7 @@ add name=ha_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n/system scheduler remove [find comment=\"HA_AUTO\"]\
 	\n\
 	\n#Pause on-error just in case we error out before the spin loop - hope 5 seconds is enough.\
-	\n/system scheduler add comment=HA_AUTO name=ha_startup on-event=\":do {:global haInterface; /system script run [find name=ha_startup]; } on-error={ :delay 5; /interface ethernet disable [find default-name!=\\\"\\\$haInterface\\\"]; /log error \\\"ha_startup: FAILED - DISABLED ALL INTERFACES\\\" }\" policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive start-date=Jan/01/1970 start-time=startup\
+	\n/system scheduler add comment=HA_AUTO name=ha_startup on-event=\":do {:global haInterface; /system script run [find name=ha_startup]; } on-error={ :delay 5; /interface bonding disable [find]; /interface ethernet disable [find default-name!=\\\"\\\$haInterface\\\"]; /log error \\\"ha_startup: FAILED - DISABLED ALL INTERFACES\\\" }\" policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive start-date=Jan/01/1970 start-time=startup\
 	\n/system scheduler add comment=HA_AUTO name=ha_report_startup on-event=\"ha_report_startup\" policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive start-date=Jan/01/1970 start-time=startup\
 	\n\
 	\n/log warning \"ha_startup: 2\"\
@@ -405,7 +409,7 @@ add name=ha_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n      /ip address remove [find interface=\"HA_VRRP\"]\
 	\n      /ip firewall filter remove [find comment=\"HA_AUTO\"]\
 	\n      /ip service set [find name=\"ftp\"] disabled=yes\
-	\n      /interface ethernet enable [find default-name=\"\$haInterface\"] \
+	\n      /interface ethernet enable [find default-name=\"\$haInterface\"]\
 	\n      /log warning \"ha_startup: 2.1 \$haInitTries\"\
 	\n      /interface ethernet get [find default-name=\"\$haInterface\"] orig-mac-address\
 	\n      /log warning \"ha_startup: 2.2 \$haInitTries\"\
@@ -531,6 +535,7 @@ add name=ha_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n\
 	\n#} on-error={\
 	\n#   /log warning \"ha_startup: FAILED got error! disabling all interfaces!\"\
+	\n#   /interface bonding disable [find]\
 	\n#   /interface ethernet disable [find]\
 	\n#}\
 	\n\
