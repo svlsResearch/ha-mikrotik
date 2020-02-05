@@ -36,6 +36,7 @@
       } else={
          :put "STAY"
          #Disable all interfaces if they havent already, so the primary doesnt sneak in and we lose the failed state.
+         /interface bonding disable [find]
          /interface ethernet disable [find]
       }
    }

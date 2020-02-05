@@ -24,6 +24,7 @@
    :delay .1
 }
 /log warning "ha_startup: 0.3"
+/interface bonding disable [find]
 /interface ethernet disable [find]
 :global haStartupHAVersion "%%%HA_VERSION%%%"
 :global isStandbyInSync false
@@ -49,7 +50,7 @@
 /system scheduler remove [find comment="HA_AUTO"]
 
 #Pause on-error just in case we error out before the spin loop - hope 5 seconds is enough.
-/system scheduler add comment=HA_AUTO name=ha_startup on-event=":do {:global haInterface; /system script run [find name=ha_startup]; } on-error={ :delay 5; /interface ethernet disable [find default-name!=\"\$haInterface\"]; /log error \"ha_startup: FAILED - DISABLED ALL INTERFACES\" }" policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive start-date=Jan/01/1970 start-time=startup
+/system scheduler add comment=HA_AUTO name=ha_startup on-event=":do {:global haInterface; /system script run [find name=ha_startup]; } on-error={ :delay 5; /interface bonding disable [find]; /interface ethernet disable [find default-name!=\"\$haInterface\"]; /log error \"ha_startup: FAILED - DISABLED ALL INTERFACES\" }" policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive start-date=Jan/01/1970 start-time=startup
 /system scheduler add comment=HA_AUTO name=ha_report_startup on-event="ha_report_startup" policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive start-date=Jan/01/1970 start-time=startup
 
 /log warning "ha_startup: 2"
@@ -76,7 +77,7 @@
       /ip address remove [find interface="HA_VRRP"]
       /ip firewall filter remove [find comment="HA_AUTO"]
       /ip service set [find name="ftp"] disabled=yes
-      /interface ethernet enable [find default-name="$haInterface"] 
+      /interface ethernet enable [find default-name="$haInterface"]
       /log warning "ha_startup: 2.1 $haInitTries"
       /interface ethernet get [find default-name="$haInterface"] orig-mac-address
       /log warning "ha_startup: 2.2 $haInitTries"
@@ -202,6 +203,7 @@
 
 #} on-error={
 #   /log warning "ha_startup: FAILED got error! disabling all interfaces!"
+#   /interface bonding disable [find]
 #   /interface ethernet disable [find]
 #}
 
