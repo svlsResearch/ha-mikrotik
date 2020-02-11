@@ -17,15 +17,21 @@
 /system script run [find name="ha_config"]
 /log warning "ha_startup: 0.2"
 :global haInterface
-#Remove HA_VRRP on startup to avoid this interface becoming master on slave device before $haInterface
+#Disable HA_VRRP on startup to avoid this interface becoming master on slave device before $haInterface
 #has been initialized successfully
-/interface vrrp remove [find name="HA_VRRP"]
+#:while ([:len [/interface find where name="HA_VRRP"]] != 1) do={
+#   /log error "ha_startup: delaying0 for hardware...cant find interface HA_VRRP"
+#   :delay .1
+#}
 #Sometimes the hardware isn't initialized by the time we get here. Wait until we can see the interface.
 #https://github.com/svlsResearch/ha-mikrotik/issues/1
 :while ([:len [/interface find where default-name="$haInterface"]] != 1) do={
    /log error "ha_startup: delaying1 for hardware...cant find $haInterface"
+   /interface vrrp disable [find name="HA_VRRP"]
    :delay .1
 }
+/log warning "ha_startup: 0.2b"
+/interface vrrp disable [find name="HA_VRRP"]
 /log warning "ha_startup: 0.3"
 /interface bonding disable [find]
 /interface ethernet disable [find]
