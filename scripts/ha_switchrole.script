@@ -28,8 +28,8 @@
       :put "Still waiting for standby $haWaitCount..."
       :delay 1
    }
-   :put "Standby available $haWaitCount...delaying 5s"
-   /delay 5
+   :put "Standby available $haWaitCount...delaying 10s"
+   /delay 10
    :if ($isMaster && [/ping $haAddressOther count=1 interface=$haPingInterface ttl=1]  >= 1) do={
       :put "REBOOTING MYSELF"
       :execute "/system reboot"
