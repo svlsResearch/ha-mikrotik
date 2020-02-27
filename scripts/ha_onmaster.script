@@ -1,8 +1,8 @@
 :global isMaster true
 :global haNetmaskBits
 :global haInterface
-/interface bonding enable [find disabled=yes]
-/routing bgp peer enable [find disabled=yes]
-/interface ethernet enable [find disabled=yes]
+:execute "/interface ethernet enable [find]"
+:execute "/interface bonding enable [find]"
+:execute "/routing bgp peer enable [find]"
 :execute "ha_setidentity"
 :do { :local k [/system script find name="on_master"]; if ([:len $k] = 1) do={ /system script run $k } } on-error={ :put "on_master failed" }

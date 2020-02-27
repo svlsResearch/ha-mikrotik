@@ -183,9 +183,9 @@ remove [find name=ha_onbackup_new]
 add name=ha_onbackup_new owner=admin policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive source=":global isMaster false\
 	\n:global haNetmaskBits\
 	\n:global haInterface\
-	\n/routing bgp peer disable [find disabled=no]\
-	\n/interface bonding disable [find disabled=no]\
-	\n/interface ethernet disable [find where disabled=no and default-name!=\"\$haInterface\" and comment!=\"HA_RESCUE\"]\
+	\n:execute \"/routing bgp peer disable [find]\"\
+	\n:execute \"/interface bonding disable [find]\"\
+	\n:execute \"/interface ethernet disable [find where default-name!=\\\"\$haInterface\\\" and comment!=\\\"HA_RESCUE\\\"]\"\
 	\n:execute \"ha_setidentity\"\
 	\n:do { :local k [/system script find name=\"on_backup\"]; if ([:len \$k] = 1) do={ /system script run \$k } } on-error={ :put \"on_backup failed\" }\
 	\n"
@@ -193,9 +193,9 @@ remove [find name=ha_onmaster_new]
 add name=ha_onmaster_new owner=admin policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive source=":global isMaster true\
 	\n:global haNetmaskBits\
 	\n:global haInterface\
-	\n/interface bonding enable [find disabled=yes]\
-	\n/routing bgp peer enable [find disabled=yes]\
-	\n/interface ethernet enable [find disabled=yes]\
+	\n:execute \"/interface ethernet enable [find]\"\
+	\n:execute \"/interface bonding enable [find]\"\
+	\n:execute \"/routing bgp peer enable [find]\"\
 	\n:execute \"ha_setidentity\"\
 	\n:do { :local k [/system script find name=\"on_master\"]; if ([:len \$k] = 1) do={ /system script run \$k } } on-error={ :put \"on_master failed\" }\
 	\n"
@@ -370,7 +370,7 @@ add name=ha_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n/log warning \"ha_startup: 0.3\"\
 	\n#Finally take care about all ethernet interfaces\
 	\n/interface ethernet disable [find disabled=no]\
-	\n:global haStartupHAVersion \"0.7test15 - 974c6e42232e0c05710759ef2dc2c0f3ee13dc6b\"\
+	\n:global haStartupHAVersion \"0.7test15 - 7a36ae066ee95b1d83b75577f98bce7afb8fb40d\"\
 	\n:global isStandbyInSync false\
 	\n:global isMaster false\
 	\n:global haPassword\
