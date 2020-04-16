@@ -251,9 +251,9 @@ add name=ha_pushbackup_new owner=admin policy=ftp,reboot,read,write,policy,test,
 	\n\
 	\n   /export file=HA_b2s.rsc\
 	\n   /system backup save name=HA_b2s.backup password=p\
-	\n   /tool fetch upload=yes src-path=HA_b2s.rsc dst-path=HA_b2s.rsc address=\$haAddressOther user=ha password=\$haPassword mode=ftp  \
-	\n   /tool fetch upload=yes src-path=HA_b2s.backup dst-path=HA_b2s.backup address=\$haAddressOther user=ha password=\$haPassword mode=ftp  \
-	\n   /file print file=HA_restore-backup.rsc; /file set [find name=\"HA_restore-backup.rsc.txt\"] contents=\"/system backup load name=HA_b2s.backup password=p\"\
+	\n   /tool fetch upload=yes src-path=HA_b2s.rsc dst-path=flash/HA_b2s.rsc address=\$haAddressOther user=ha password=\$haPassword mode=ftp  \
+	\n   /tool fetch upload=yes src-path=HA_b2s.backup dst-path=flash/HA_b2s.backup address=\$haAddressOther user=ha password=\$haPassword mode=ftp  \
+	\n   /file print file=HA_restore-backup.rsc; /file set [find name=\"HA_restore-backup.rsc.txt\"] contents=\"/system backup load name=flash/HA_b2s.backup password=p\"\
 	\n   /delay 10\
 	\n   :do {\
 	\n      /tool fetch upload=yes src-path=HA_restore-backup.rsc.txt dst-path=HA_restore-backup.auto.rsc address=\$haAddressOther user=ha password=\$haPassword mode=ftp \
@@ -355,7 +355,7 @@ add name=ha_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n}\
 	\n/log warning \"ha_startup: 0.3\"\
 	\n/interface ethernet disable [find]\
-	\n:global haStartupHAVersion \"0.7test16-flash - 4b30b2efb4c5e5cc930ee4e1684e6d9e4d028721\"\
+	\n:global haStartupHAVersion \"0.7test16-flash - 992c9cb110ace80a8b0287883ad6d7c5bd7fb06a\"\
 	\n:global isStandbyInSync false\
 	\n:global isMaster false\
 	\n:global haPassword\
