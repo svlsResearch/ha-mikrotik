@@ -38,18 +38,18 @@
    }
 
    :if ([:len [/file find name=HA_dsa]] <= 0) do={ 
-      /ip ssh export-host-key key-file-prefix="HA"
+      /ip ssh export-host-key key-file-prefix="flash/HA"
    }
 
-   /tool fetch upload=yes src-path=HA_dsa dst-path=HA_dsa address=$haAddressOther user=ha password=$haPassword mode=ftp  
-   /tool fetch upload=yes src-path=HA_rsa dst-path=HA_rsa address=$haAddressOther user=ha password=$haPassword mode=ftp  
+   /tool fetch upload=yes src-path=flash/HA_dsa dst-path=flash/HA_dsa address=$haAddressOther user=ha password=$haPassword mode=ftp  
+   /tool fetch upload=yes src-path=flash/HA_rsa dst-path=flash/HA_rsa address=$haAddressOther user=ha password=$haPassword mode=ftp  
 
 
    :global haMasterConfigVer
    [/system script run [find name="ha_setconfigver"]]
    /file print file=HA_run-after-hastartup.txt
    /file set [find name=HA_run-after-hastartup.txt] contents=":global haConfigVer \"$haMasterConfigVer\""
-   /tool fetch upload=yes src-path=HA_run-after-hastartup.txt dst-path=HA_run-after-hastartup.rsc address=$haAddressOther user=ha password=$haPassword mode=ftp 
+   /tool fetch upload=yes src-path=HA_run-after-hastartup.txt dst-path=flash/HA_run-after-hastartup.rsc address=$haAddressOther user=ha password=$haPassword mode=ftp 
 
    /export file=HA_b2s.rsc
    /system backup save name=HA_b2s.backup password=p

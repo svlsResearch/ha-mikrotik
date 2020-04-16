@@ -60,12 +60,12 @@
 :put "   /export file=HA_backup_beforeHA.rsc"
 :put "}"
 #Oh this is ridicullous, we can't create a file that doesn't end in .txt any other way. Use export to create a rsc file extension.
-:put "/export file=HA_bootstrap.rsc"
+:put "/export file=flash/HA_bootstrap.rsc"
 #Seems to be a race condition between the export and the visibility, delay a bit.
 :put "/delay 2"
-:put "/file print file=HA_bootstrap.rsc"
+:put "/file print file=flash/HA_bootstrap.rsc"
 #Need delays here similar to ha_startup, sometimes the interfaces arent ready when this runs.
-:put "/file set [find name=HA_bootstrap.rsc] contents=\":local haBootstrapOK false; :while (!\\\$haBootstrapOK) do={:do { /ip address add address=\\\"$haAddressOther/$haNetmaskBits\\\" interface=$haInterface; /user add name=ha group=full password=\\\"$haPassword\\\"; :set haBootstrapOK true;} on-error={/log warning \\\"ha_startup: 0.0 B bootstrap failed...waiting\\\"; :delay 5};}\""
-:put "/system reset-configuration no-defaults=yes keep-users=no skip-backup=yes run-after-reset=HA_bootstrap.rsc"
+:put "/file set [find name=flash/HA_bootstrap.rsc] contents=\":local haBootstrapOK false; :while (!\\\$haBootstrapOK) do={:do { /ip address add address=\\\"$haAddressOther/$haNetmaskBits\\\" interface=$haInterface; /user add name=ha group=full password=\\\"$haPassword\\\"; :set haBootstrapOK true;} on-error={/log warning \\\"ha_startup: 0.0 B bootstrap failed...waiting\\\"; :delay 5};}\""
+:put "/system reset-configuration no-defaults=yes keep-users=no skip-backup=yes run-after-reset=flash/HA_bootstrap.rsc"
 :put "###END OF PASTE FOR OTHER DEVICE###"
 :put "###"

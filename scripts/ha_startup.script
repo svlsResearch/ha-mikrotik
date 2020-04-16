@@ -163,10 +163,10 @@
 /system scheduler add comment=HA_AUTO interval=24h name=ha_auto_pushbackup on-event=ha_pushbackup policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive start-date=Jan/01/1970 start-time=05:00:00
 /log warning "ha_startup: 7"
 :if ([:len [/file find name="HA_dsa"]] = 1) do={
-   /ip ssh import-host-key private-key-file=HA_rsa
+   /ip ssh import-host-key private-key-file=flash/HA_rsa
 }
 :if ([:len [/file find name="HA_rsa"]] = 1) do={
-   /ip ssh import-host-key private-key-file=HA_rsa
+   /ip ssh import-host-key private-key-file=flash/HA_rsa
 }
 /user remove [find comment=HA_AUTO]
 /user add address="$haNetwork/$haNetmaskBits" comment=HA_AUTO group=full name=ha password="$haPassword"
@@ -186,8 +186,8 @@
    /ip service set [find name=$service] address=[:toarray $serviceAddresses]
 }
 
-:if ([:len [/file find where name="HA_run-after-hastartup.rsc"]] > 0) do={
-   /import HA_run-after-hastartup.rsc
+:if ([:len [/file find where name="flash/HA_run-after-hastartup.rsc"]] > 0) do={
+   /import flash/HA_run-after-hastartup.rsc
 }
 /delay 5
 #We need FTP to do our HA work

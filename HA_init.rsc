@@ -154,13 +154,13 @@ add name=ha_install_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n:put \"   /export file=HA_backup_beforeHA.rsc\"\
 	\n:put \"}\"\
 	\n#Oh this is ridicullous, we can't create a file that doesn't end in .txt any other way. Use export to create a rsc file extension.\
-	\n:put \"/export file=HA_bootstrap.rsc\"\
+	\n:put \"/export file=flash/HA_bootstrap.rsc\"\
 	\n#Seems to be a race condition between the export and the visibility, delay a bit.\
 	\n:put \"/delay 2\"\
-	\n:put \"/file print file=HA_bootstrap.rsc\"\
+	\n:put \"/file print file=flash/HA_bootstrap.rsc\"\
 	\n#Need delays here similar to ha_startup, sometimes the interfaces arent ready when this runs.\
-	\n:put \"/file set [find name=HA_bootstrap.rsc] contents=\\\":local haBootstrapOK false; :while (!\\\\\\\$haBootstrapOK) do={:do { /ip address add address=\\\\\\\"\$haAddressOther/\$haNetmaskBits\\\\\\\" interface=\$haInterface; /user add name=ha group=full password=\\\\\\\"\$haPassword\\\\\\\"; :set haBootstrapOK true;} on-error={/log warning \\\\\\\"ha_startup: 0.0 B bootstrap failed...waiting\\\\\\\"; :delay 5};}\\\"\"\
-	\n:put \"/system reset-configuration no-defaults=yes keep-users=no skip-backup=yes run-after-reset=HA_bootstrap.rsc\"\
+	\n:put \"/file set [find name=flash/HA_bootstrap.rsc] contents=\\\":local haBootstrapOK false; :while (!\\\\\\\$haBootstrapOK) do={:do { /ip address add address=\\\\\\\"\$haAddressOther/\$haNetmaskBits\\\\\\\" interface=\$haInterface; /user add name=ha group=full password=\\\\\\\"\$haPassword\\\\\\\"; :set haBootstrapOK true;} on-error={/log warning \\\\\\\"ha_startup: 0.0 B bootstrap failed...waiting\\\\\\\"; :delay 5};}\\\"\"\
+	\n:put \"/system reset-configuration no-defaults=yes keep-users=no skip-backup=yes run-after-reset=flash/HA_bootstrap.rsc\"\
 	\n:put \"###END OF PASTE FOR OTHER DEVICE###\"\
 	\n:put \"###\"\
 	\n"
@@ -236,18 +236,18 @@ add name=ha_pushbackup_new owner=admin policy=ftp,reboot,read,write,policy,test,
 	\n   }\
 	\n\
 	\n   :if ([:len [/file find name=HA_dsa]] <= 0) do={ \
-	\n      /ip ssh export-host-key key-file-prefix=\"HA\"\
+	\n      /ip ssh export-host-key key-file-prefix=\"flash/HA\"\
 	\n   }\
 	\n\
-	\n   /tool fetch upload=yes src-path=HA_dsa dst-path=HA_dsa address=\$haAddressOther user=ha password=\$haPassword mode=ftp  \
-	\n   /tool fetch upload=yes src-path=HA_rsa dst-path=HA_rsa address=\$haAddressOther user=ha password=\$haPassword mode=ftp  \
+	\n   /tool fetch upload=yes src-path=flash/HA_dsa dst-path=flash/HA_dsa address=\$haAddressOther user=ha password=\$haPassword mode=ftp  \
+	\n   /tool fetch upload=yes src-path=flash/HA_rsa dst-path=flash/HA_rsa address=\$haAddressOther user=ha password=\$haPassword mode=ftp  \
 	\n\
 	\n\
 	\n   :global haMasterConfigVer\
 	\n   [/system script run [find name=\"ha_setconfigver\"]]\
 	\n   /file print file=HA_run-after-hastartup.txt\
 	\n   /file set [find name=HA_run-after-hastartup.txt] contents=\":global haConfigVer \\\"\$haMasterConfigVer\\\"\"\
-	\n   /tool fetch upload=yes src-path=HA_run-after-hastartup.txt dst-path=HA_run-after-hastartup.rsc address=\$haAddressOther user=ha password=\$haPassword mode=ftp \
+	\n   /tool fetch upload=yes src-path=HA_run-after-hastartup.txt dst-path=flash/HA_run-after-hastartup.rsc address=\$haAddressOther user=ha password=\$haPassword mode=ftp \
 	\n\
 	\n   /export file=HA_b2s.rsc\
 	\n   /system backup save name=HA_b2s.backup password=p\
@@ -354,7 +354,7 @@ add name=ha_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n}\
 	\n/log warning \"ha_startup: 0.3\"\
 	\n/interface ethernet disable [find]\
-	\n:global haStartupHAVersion \"0.7test15 - de3cd22b6c4882782ab0c7bf2903cdce9668264c\"\
+	\n:global haStartupHAVersion \"0.7test16-flash - 2795522de7ff05939909b2be278a31c86f3674bf\"\
 	\n:global isStandbyInSync false\
 	\n:global isMaster false\
 	\n:global haPassword\
@@ -492,10 +492,10 @@ add name=ha_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n/system scheduler add comment=HA_AUTO interval=24h name=ha_auto_pushbackup on-event=ha_pushbackup policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive start-date=Jan/01/1970 start-time=05:00:00\
 	\n/log warning \"ha_startup: 7\"\
 	\n:if ([:len [/file find name=\"HA_dsa\"]] = 1) do={\
-	\n   /ip ssh import-host-key private-key-file=HA_rsa\
+	\n   /ip ssh import-host-key private-key-file=flash/HA_rsa\
 	\n}\
 	\n:if ([:len [/file find name=\"HA_rsa\"]] = 1) do={\
-	\n   /ip ssh import-host-key private-key-file=HA_rsa\
+	\n   /ip ssh import-host-key private-key-file=flash/HA_rsa\
 	\n}\
 	\n/user remove [find comment=HA_AUTO]\
 	\n/user add address=\"\$haNetwork/\$haNetmaskBits\" comment=HA_AUTO group=full name=ha password=\"\$haPassword\"\
@@ -515,8 +515,8 @@ add name=ha_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n   /ip service set [find name=\$service] address=[:toarray \$serviceAddresses]\
 	\n}\
 	\n\
-	\n:if ([:len [/file find where name=\"HA_run-after-hastartup.rsc\"]] > 0) do={\
-	\n   /import HA_run-after-hastartup.rsc\
+	\n:if ([:len [/file find where name=\"flash/HA_run-after-hastartup.rsc\"]] > 0) do={\
+	\n   /import flash/HA_run-after-hastartup.rsc\
 	\n}\
 	\n/delay 5\
 	\n#We need FTP to do our HA work\
