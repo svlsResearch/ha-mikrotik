@@ -56,6 +56,7 @@
    /tool fetch upload=yes src-path=HA_b2s.rsc dst-path=HA_b2s.rsc address=$haAddressOther user=ha password=$haPassword mode=ftp  
    /tool fetch upload=yes src-path=HA_b2s.backup dst-path=HA_b2s.backup address=$haAddressOther user=ha password=$haPassword mode=ftp  
    /file print file=HA_restore-backup.rsc; /file set [find name="HA_restore-backup.rsc.txt"] contents="/system backup load name=HA_b2s.backup password=p"
+   /delay 10
    :do {
       /tool fetch upload=yes src-path=HA_restore-backup.rsc.txt dst-path=HA_restore-backup.auto.rsc address=$haAddressOther user=ha password=$haPassword mode=ftp 
    } on-error={
