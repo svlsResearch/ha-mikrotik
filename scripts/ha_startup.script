@@ -200,10 +200,5 @@
 /log warning "ha_startup: DONE"
 :put "ha_startup: DONE"
 
-#} on-error={
-#   /log warning "ha_startup: FAILED got error! disabling all interfaces!"
-#   /interface ethernet disable [find]
-#}
-
 :do { :local k [/system script find name="on_startup"]; if ([:len $k] = 1) do={ /system script run $k } } on-error={ :put "on_startup failed" }
 }
