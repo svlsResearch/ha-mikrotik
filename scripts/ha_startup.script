@@ -6,7 +6,6 @@
 :global uptime [/system resource get uptime]
 :if (!$haAllowBootstrap && ([:typeof $haStartupHasRun] != "nothing" || uptime > 2m)) do={
    /log warning "ha_startup: ERROR ATTEMPTED TO RUN AGAIN!!! $haStartupHasRun $uptime"
-   :error "ha_startup: ERROR ATTEMPTED TO RUN AGAIN!!! $haStartupHasRun $uptime"
 } else={
 :set haStartupHasRun [/system resource get uptime]
 :set haAllowBootstrap false
