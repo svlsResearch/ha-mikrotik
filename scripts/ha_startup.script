@@ -180,6 +180,13 @@
 :if ([:len [/file find name="HA_rsa"]] = 1) do={
    /ip ssh import-host-key private-key-file=HA_rsa
 }
+# bugfix v7
+:if ([:len [/file find name="HA_dsa.pem"]] = 1) do={
+   /ip ssh import-host-key private-key-file=HA_dsa.pem
+}
+:if ([:len [/file find name="HA_rsa.pem"]] = 1) do={
+   /ip ssh import-host-key private-key-file=HA_rsa.pem
+}
 /user remove [find comment=HA_AUTO]
 /user add address="$haNetwork/$haNetmaskBits" comment=HA_AUTO group=full name=ha password="$haPassword"
 /log warning "ha_startup: 8"

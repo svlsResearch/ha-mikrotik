@@ -41,9 +41,19 @@
       /ip ssh export-host-key key-file-prefix="HA"
    }
 
-   /tool fetch upload=yes src-path=HA_dsa dst-path=HA_dsa address=$haAddressOther user=ha password=$haPassword mode=ftp  
-   /tool fetch upload=yes src-path=HA_rsa dst-path=HA_rsa address=$haAddressOther user=ha password=$haPassword mode=ftp  
-
+:if ([:len [/file find name="HA_dsa"]] = 1) do={
+   /tool fetch upload=yes src-path=HA_dsa dst-path=HA_dsa address=$haAddressOther user=ha password=$haPassword mode=ftp
+}
+:if ([:len [/file find name="HA_rsa"]] = 1) do={
+   /tool fetch upload=yes src-path=HA_rsa dst-path=HA_rsa address=$haAddressOther user=ha password=$haPassword mode=ftp
+}
+# bugfix v7
+:if ([:len [/file find name="HA_dsa.pem"]] = 1) do={
+   /tool fetch upload=yes src-path=HA_dsa.pem dst-path=HA_dsa.pem address=$haAddressOther user=ha password=$haPassword mode=ftp
+}
+:if ([:len [/file find name="HA_rsa.pem"]] = 1) do={
+   /tool fetch upload=yes src-path=HA_rsa.pem dst-path=HA_rsa.pem address=$haAddressOther user=ha password=$haPassword mode=ftp
+}
 
    :global haMasterConfigVer
    [/system script run [find name="ha_setconfigver"]]
