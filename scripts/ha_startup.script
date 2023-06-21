@@ -175,7 +175,7 @@
 /system scheduler add comment=HA_AUTO interval=24h name=ha_auto_pushbackup on-event=ha_pushbackup policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive start-date=Jan/01/1970 start-time=05:00:00
 /log warning "ha_startup: 7"
 :if ([:len [/file find name="HA_dsa"]] = 1) do={
-   /ip ssh import-host-key private-key-file=HA_rsa
+   /ip ssh import-host-key private-key-file=HA_dsa
 }
 :if ([:len [/file find name="HA_rsa"]] = 1) do={
    /ip ssh import-host-key private-key-file=HA_rsa
