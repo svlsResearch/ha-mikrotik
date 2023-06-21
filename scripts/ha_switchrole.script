@@ -23,18 +23,35 @@
    /system script run [find name="ha_pushbackup"]
    :delay 5
    :local haWaitCount 0
-   while ([/ping $haAddressOther count=1 interface=$haPingInterface ttl=1]  = 0) do={
-      :set haWaitCount ($haWaitCount+1)
-      :put "Still waiting for standby $haWaitCount..."
-      :delay 1
+   if ([:pick [/system resource get version] 0 ] = 6) do={
+      while ([/ping $haAddressOther count=1 interface=$haPingInterface ttl=1] = 0) do={
+         :set haWaitCount ($haWaitCount+1)
+         :put "Still waiting for standby $haWaitCount..."
+         :delay 1
+      }
+      :put "Standby available $haWaitCount...delaying 22s"
+      /delay 22
+      :if ($isMaster && [/ping $haAddressOther count=1 interface=$haPingInterface ttl=1] >= 1) do={
+         :put "REBOOTING MYSELF"
+         :execute "/system reboot"
+      } else={
+         :put "NOT REBOOTING MYSELF! SLAVE IS NOT UP OR I AM NOT MASTER!"
+      }
    }
-   :put "Standby available $haWaitCount...delaying 10s"
-   /delay 10
-   :if ($isMaster && [/ping $haAddressOther count=1 interface=$haPingInterface ttl=1]  >= 1) do={
-      :put "REBOOTING MYSELF"
-      :execute "/system reboot"
-   } else={
-      :put "NOT REBOOTING MYSELF! SLAVE IS NOT UP OR I AM NOT MASTER!"
+   if ([:pick [/system resource get version] 0 ] = 7) do={
+      while (([/ping $haAddressOther count=1 interface=$haPingInterface ttl=1 as-value ]->"time") = nil ) do={
+         :set haWaitCount ($haWaitCount+1)
+         :put "Still waiting for standby $haWaitCount..."
+         :delay 1
+      }
+      :put "Standby available $haWaitCount...delaying 22s"
+      /delay 22
+      :if ($isMaster && (([/ping $haAddressOther count=1 interface=$haPingInterface ttl=1 as-value ]->"time") > 0 ) ) do={
+         :put "REBOOTING MYSELF"
+         :execute "/system reboot"
+      } else={
+         :put "NOT REBOOTING MYSELF! SLAVE IS NOT UP OR I AM NOT MASTER!"
+      }
    }
 } else={
    :put "I am NOT master - nothing to do"
