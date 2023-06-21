@@ -3,6 +3,11 @@
 :global haInterface
 :execute "/interface ethernet enable [find]"
 :execute "/interface bonding enable [find]"
-:execute "/routing bgp peer enable [find]"
+:if ([:pick [/system resource get version] 0 ] = 6) do={
+   :execute "/routing bgp peer enable [find]"
+}
+:if ([:pick [/system resource get version] 0 ] = 7) do={
+   :execute "/routing bgp connection enable [find]"
+}
 :execute "ha_setidentity"
 :do { :local k [/system script find name="on_master"]; if ([:len $k] = 1) do={ /system script run $k } } on-error={ :put "on_master failed" }

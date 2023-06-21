@@ -1,7 +1,12 @@
 :global isMaster false
 :global haNetmaskBits
 :global haInterface
-:execute "/routing bgp peer disable [find]"
+:if ([:pick [/system resource get version] 0 ] = 6) do={
+   :execute "/routing bgp peer disable [find]"
+}
+:if ([:pick [/system resource get version] 0 ] = 7) do={
+   :execute "/routing bgp connection disable [find]"
+}
 :execute "/interface bonding disable [find]"
 :execute "/interface ethernet disable [find where default-name!=\"$haInterface\" and comment!=\"HA_RESCUE\"]"
 :execute "ha_setidentity"
