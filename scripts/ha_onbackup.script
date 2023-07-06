@@ -1,6 +1,13 @@
 :global isMaster false
 :global haNetmaskBits
 :global haInterface
-/interface ethernet disable [find default-name!="$haInterface"]
+:if ([:pick [/system resource get version] 0 ] = 6) do={
+   :execute "/routing bgp peer disable [find]"
+}
+:if ([:pick [/system resource get version] 0 ] = 7) do={
+   :execute "/routing bgp connection disable [find]"
+}
+:execute "/interface bonding disable [find]"
+:execute "/interface ethernet disable [find where default-name!=\"$haInterface\" and comment!=\"HA_RESCUE\"]"
 :execute "ha_setidentity"
 :do { :local k [/system script find name="on_backup"]; if ([:len $k] = 1) do={ /system script run $k } } on-error={ :put "on_backup failed" }

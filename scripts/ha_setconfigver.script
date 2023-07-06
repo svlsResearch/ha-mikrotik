@@ -1,4 +1,4 @@
-:local verHistory [:tostr [:pick [/system history print detail as-value] 1]]
+:local verHistory [:tostr [:pick [/system history print as-value] 1]]
 :local verCertificate [:tostr [/certificate find]]
 :local verFile [:tostr [/file find name~"^[^H][^A][^_]"]]
 :local haVer "history=$verHistory file=$verFile certificate=$verCertificate"

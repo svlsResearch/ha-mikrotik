@@ -183,7 +183,9 @@ remove [find name=ha_onbackup_new]
 add name=ha_onbackup_new owner=admin policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive source=":global isMaster false\
 	\n:global haNetmaskBits\
 	\n:global haInterface\
-	\n/interface ethernet disable [find default-name!=\"\$haInterface\"]\
+	\n:execute \"/routing bgp peer disable [find]\"\
+	\n:execute \"/interface bonding disable [find]\"\
+	\n:execute \"/interface ethernet disable [find where default-name!=\\\"\$haInterface\\\" and comment!=\\\"HA_RESCUE\\\"]\"\
 	\n:execute \"ha_setidentity\"\
 	\n:do { :local k [/system script find name=\"on_backup\"]; if ([:len \$k] = 1) do={ /system script run \$k } } on-error={ :put \"on_backup failed\" }\
 	\n"
@@ -191,7 +193,9 @@ remove [find name=ha_onmaster_new]
 add name=ha_onmaster_new owner=admin policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive source=":global isMaster true\
 	\n:global haNetmaskBits\
 	\n:global haInterface\
-	\n/interface ethernet enable [find]\
+	\n:execute \"/interface ethernet enable [find]\"\
+	\n:execute \"/interface bonding enable [find]\"\
+	\n:execute \"/routing bgp peer enable [find]\"\
 	\n:execute \"ha_setidentity\"\
 	\n:do { :local k [/system script find name=\"on_master\"]; if ([:len \$k] = 1) do={ /system script run \$k } } on-error={ :put \"on_master failed\" }\
 	\n"
@@ -300,6 +304,7 @@ add name=ha_report_startup_new owner=admin policy=ftp,reboot,read,write,policy,t
 	\n      } else={\
 	\n         :put \"STAY\"\
 	\n         #Disable all interfaces if they havent already, so the primary doesnt sneak in and we lose the failed state.\
+	\n         /interface bonding disable [find]\
 	\n         /interface ethernet disable [find]\
 	\n      }\
 	\n   }\
@@ -348,13 +353,24 @@ add name=ha_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n:global haInterface\
 	\n#Sometimes the hardware isn't initialized by the time we get here. Wait until we can see the interface.\
 	\n#https://github.com/svlsResearch/ha-mikrotik/issues/1\
-	\n:while ([:len [/interface find where default-name=\"\$haInterface\"]] != 1) do={\
+	\n:while ([:len [/interface find default-name=\"\$haInterface\"]] != 1) do={\
 	\n   /log error \"ha_startup: delaying1 for hardware...cant find \$haInterface\"\
-	\n   :delay .1\
+	\n   #Avoid HA_VRRP becoming Master on CCR equipment during slow hardware initialization\
+	\n   /interface vrrp disable [find where name=\"HA_VRRP\" and disabled=no]\
+	\n   #Avoid bonding flapping on CCR equipment during slow hardware initialization\
+	\n   /interface bonding disable [find disabled=no]\
+	\n   :delay .05\
 	\n}\
+	\n/log warning \"ha_startup: 0.2b\"\
+	\n#Disable HA_VRRP on startup to avoid this interface becoming master on slave device before \$haInterface\
+	\n#has been initialized successfully\
+	\n/interface vrrp disable [find where name=\"HA_VRRP\" and disabled=no]\
+	\n#Disable bonding to avoid flapping during startup\
+	\n/interface bonding disable [find disabled=no]\
 	\n/log warning \"ha_startup: 0.3\"\
-	\n/interface ethernet disable [find]\
-	\n:global haStartupHAVersion \"0.7test15 - de3cd22b6c4882782ab0c7bf2903cdce9668264c\"\
+	\n#Finally take care about all ethernet interfaces\
+	\n/interface ethernet disable [find disabled=no]\
+	\n:global haStartupHAVersion \"0.7test15 - 7a36ae066ee95b1d83b75577f98bce7afb8fb40d\"\
 	\n:global isStandbyInSync false\
 	\n:global isMaster false\
 	\n:global haPassword\
@@ -378,7 +394,7 @@ add name=ha_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n/system scheduler remove [find comment=\"HA_AUTO\"]\
 	\n\
 	\n#Pause on-error just in case we error out before the spin loop - hope 5 seconds is enough.\
-	\n/system scheduler add comment=HA_AUTO name=ha_startup on-event=\":do {:global haInterface; /system script run [find name=ha_startup]; } on-error={ :delay 5; /interface ethernet disable [find default-name!=\\\"\\\$haInterface\\\"]; /log error \\\"ha_startup: FAILED - DISABLED ALL INTERFACES\\\" }\" policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive start-date=Jan/01/1970 start-time=startup\
+	\n/system scheduler add comment=HA_AUTO name=ha_startup on-event=\":do {:global haInterface; /system script run [find name=ha_startup]; } on-error={ :delay 5; /interface bonding disable [find disabled=no]; /interface ethernet disable [find where disabled=no and default-name!=\\\"\\\$haInterface\\\" and comment!=\\\"HA_RESCUE\\\"]; /log error \\\"ha_startup: FAILED - DISABLED ALL INTERFACES\\\" }\" policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive start-date=Jan/01/1970 start-time=startup\
 	\n/system scheduler add comment=HA_AUTO name=ha_report_startup on-event=\"ha_report_startup\" policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive start-date=Jan/01/1970 start-time=startup\
 	\n\
 	\n/log warning \"ha_startup: 2\"\
@@ -388,7 +404,7 @@ add name=ha_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n#https://github.com/svlsResearch/ha-mikrotik/issues/7\
 	\n:global haTmpMac \"\"\
 	\n:global haTmpInterfaceName \"\"\
-	\n:global haTmpMaxInitTries 100\
+	\n:global haTmpMaxInitTries 120\
 	\n:global haInitTries 0\
 	\n#Used to be backwards compatible with pre-bridge config.\
 	\n:global haInterfaceLogical\
@@ -405,7 +421,8 @@ add name=ha_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n      /ip address remove [find interface=\"HA_VRRP\"]\
 	\n      /ip firewall filter remove [find comment=\"HA_AUTO\"]\
 	\n      /ip service set [find name=\"ftp\"] disabled=yes\
-	\n      /interface ethernet enable [find default-name=\"\$haInterface\"] \
+	\n      /interface ethernet enable [find where disabled=yes and default-name=\"\$haInterface\"]\
+	\n      /interface ethernet enable [find where disabled=yes and comment=\"HA_RESCUE\"]\
 	\n      /log warning \"ha_startup: 2.1 \$haInitTries\"\
 	\n      /interface ethernet get [find default-name=\"\$haInterface\"] orig-mac-address\
 	\n      /log warning \"ha_startup: 2.2 \$haInitTries\"\
@@ -531,6 +548,7 @@ add name=ha_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n\
 	\n#} on-error={\
 	\n#   /log warning \"ha_startup: FAILED got error! disabling all interfaces!\"\
+	\n#   /interface bonding disable [find]\
 	\n#   /interface ethernet disable [find]\
 	\n#}\
 	\n\
@@ -568,8 +586,8 @@ add name=ha_switchrole_new owner=admin policy=ftp,reboot,read,write,policy,test,
 	\n      :put \"Still waiting for standby \$haWaitCount...\"\
 	\n      :delay 1\
 	\n   }\
-	\n   :put \"Standby available \$haWaitCount...delaying 5s\"\
-	\n   /delay 5\
+	\n   :put \"Standby available \$haWaitCount...delaying 10s\"\
+	\n   /delay 10\
 	\n   :if (\$isMaster && [/ping \$haAddressOther count=1 interface=\$haPingInterface ttl=1]  >= 1) do={\
 	\n      :put \"REBOOTING MYSELF\"\
 	\n      :execute \"/system reboot\"\
