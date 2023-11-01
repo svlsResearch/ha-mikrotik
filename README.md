@@ -1,10 +1,8 @@
 # ha-mikrotik (Tested stable)
 High availability code for Mikrotik routers
 
-# Status: December 10th 2019
-**RouterOS 6.44.6** is the only version that the author runs and tests with as of now. Anything newer is unknown and not recommended until tested extensively. Do not just upgrade RouterOS expecting it to work, Mikrotik has broken a series of features that ha-mikrotik relies on at various points in time. If you are not comfortable testing new versions that make break your entire setup, wait for the author or another party to confirm compatibility.
-
-This has been tested stable across 6 different pairs of CCR1009s for over a year, there have been multiple adminstrative failover events and a few cases of hardware failovers. Please ensure you are using compatible hardware, RouterOS, and ha-mikrotik releases.
+# Status: November 1st 2023
+**RouterOS 7.11.2** Currently testing this version using this branch.
 
 # Warning
 Please do not test this on production routers. This should be tested in a lab setup with complete out of band serial access.
