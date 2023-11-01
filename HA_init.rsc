@@ -183,7 +183,12 @@ remove [find name=ha_onbackup_new]
 add name=ha_onbackup_new owner=admin policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive source=":global isMaster false\
 	\n:global haNetmaskBits\
 	\n:global haInterface\
-	\n:execute \"/routing bgp peer disable [find]\"\
+	\n:if ([:pick [/system resource get version] 0 ] = 6) do={\
+	\n   :execute \"/routing bgp peer disable [find]\"\
+	\n}\
+	\n:if ([:pick [/system resource get version] 0 ] = 7) do={\
+	\n   :execute \"/routing bgp connection disable [find]\"\
+	\n}\
 	\n:execute \"/interface bonding disable [find]\"\
 	\n:execute \"/interface ethernet disable [find where default-name!=\\\"\$haInterface\\\" and comment!=\\\"HA_RESCUE\\\"]\"\
 	\n:execute \"ha_setidentity\"\
@@ -195,7 +200,12 @@ add name=ha_onmaster_new owner=admin policy=ftp,reboot,read,write,policy,test,pa
 	\n:global haInterface\
 	\n:execute \"/interface ethernet enable [find]\"\
 	\n:execute \"/interface bonding enable [find]\"\
-	\n:execute \"/routing bgp peer enable [find]\"\
+	\n:if ([:pick [/system resource get version] 0 ] = 6) do={\
+	\n   :execute \"/routing bgp peer enable [find]\"\
+	\n}\
+	\n:if ([:pick [/system resource get version] 0 ] = 7) do={\
+	\n   :execute \"/routing bgp connection enable [find]\"\
+	\n}\
 	\n:execute \"ha_setidentity\"\
 	\n:do { :local k [/system script find name=\"on_master\"]; if ([:len \$k] = 1) do={ /system script run \$k } } on-error={ :put \"on_master failed\" }\
 	\n"
@@ -220,7 +230,8 @@ add name=ha_pushbackup_new owner=admin policy=ftp,reboot,read,write,policy,test,
 	\n   :set mkdirCode \"\$mkdirCode\\r\\n/ip smb shares remove [find comment=HA_AUTO]\\r\\n\"\
 	\n   #eh - good chance to keep files in sync, just delete everything, we will reupload. is this going to reduce life of nvram?\
 	\n   :local purgeFilesCode \":foreach k in=[/file find type!=\\\"directory\\\"] do={ :local xferfile [/file get \\\$k name]; if ([:pick \\\"\\\$xferfile\\\" 0 3] != \\\"HA_\\\") do={ :put \\\"removing \\\$xferfile\\\"; /file remove \\\$k; } }\"\
-	\n   :set mkdirCode \"\$purgeFilesCode;\\r\\n/delay 2;\\r\\n\$mkdirCode\"\
+	\n   :local purgeKeys \"/file remove [find name=\\\"HA_dsa\\\" or name=\\\"HA_rsa\\\" or name=\\\"HA_rsa.pem\\\" or name=\\\"HA_rsa.pem\\\"]\"\
+	\n   :set mkdirCode \"\$purgeKeys;\$purgeFilesCode;\\r\\n/delay 2;\\r\\n\$mkdirCode\"\
 	\n\
 	\n   /file print file=HA_mkdirs.txt\
 	\n   /file set [find name=\"HA_mkdirs.txt\"] contents=\$mkdirCode\
@@ -239,13 +250,23 @@ add name=ha_pushbackup_new owner=admin policy=ftp,reboot,read,write,policy,test,
 	\n      }\
 	\n   }\
 	\n\
-	\n   :if ([:len [/file find name=HA_dsa]] <= 0) do={ \
-	\n      /ip ssh export-host-key key-file-prefix=\"HA\"\
+	\n   #Always export so we don't need to figure out versions.\
+	\n   /file remove [find name=\"HA_dsa\" or name=\"HA_rsa\" or name=\"HA_rsa.pem\" or name=\"HA_rsa.pem\"]\
+	\n   /ip ssh export-host-key key-file-prefix=\"HA\"\
+	\n\
+	\n   :if ([:len [/file find name=\"HA_dsa\"]] = 1) do={\
+	\n      /tool fetch upload=yes src-path=HA_dsa dst-path=HA_dsa address=\$haAddressOther user=ha password=\$haPassword mode=ftp\
 	\n   }\
-	\n\
-	\n   /tool fetch upload=yes src-path=HA_dsa dst-path=HA_dsa address=\$haAddressOther user=ha password=\$haPassword mode=ftp  \
-	\n   /tool fetch upload=yes src-path=HA_rsa dst-path=HA_rsa address=\$haAddressOther user=ha password=\$haPassword mode=ftp  \
-	\n\
+	\n   :if ([:len [/file find name=\"HA_rsa\"]] = 1) do={\
+	\n      /tool fetch upload=yes src-path=HA_rsa dst-path=HA_rsa address=\$haAddressOther user=ha password=\$haPassword mode=ftp\
+	\n   }\
+	\n   # bugfix v7\
+	\n   :if ([:len [/file find name=\"HA_dsa.pem\"]] = 1) do={\
+	\n      /tool fetch upload=yes src-path=HA_dsa.pem dst-path=HA_dsa.pem address=\$haAddressOther user=ha password=\$haPassword mode=ftp\
+	\n   }\
+	\n   :if ([:len [/file find name=\"HA_rsa.pem\"]] = 1) do={\
+	\n      /tool fetch upload=yes src-path=HA_rsa.pem dst-path=HA_rsa.pem address=\$haAddressOther user=ha password=\$haPassword mode=ftp\
+	\n   }\
 	\n\
 	\n   :global haMasterConfigVer\
 	\n   [/system script run [find name=\"ha_setconfigver\"]]\
@@ -311,7 +332,52 @@ add name=ha_report_startup_new owner=admin policy=ftp,reboot,read,write,policy,t
 	\n}\
 	\n"
 remove [find name=ha_setconfigver_new]
-add name=ha_setconfigver_new owner=admin policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive source=":local verHistory [:tostr [:pick [/system history print detail as-value] 1]]\
+add name=ha_setconfigver_new owner=admin policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive source="#Credit to rextended for this function: https://forum.mikrotik.com/viewtopic.php?t=194152#p988931\
+	\n:local str2base64 do={\
+	\n    :local input   [:tostr \"\$1\"]\
+	\n    :local options \"\$2\$3\"\
+	\n\
+	\n    :local charsString \"\"\
+	\n    :for x from=0 to=15 step=1 do={ :for y from=0 to=15 step=1 do={\
+	\n        :local tmpHex \"\$[:pick \"0123456789ABCDEF\" \$x (\$x+1)]\$[:pick \"0123456789ABCDEF\" \$y (\$y+1)]\"\
+	\n        :set \$charsString \"\$charsString\$[[:parse \"(\\\"\\\\\$tmpHex\\\")\"]]\"\
+	\n    } }\
+	\n\
+	\n    :local chr2int do={:if ((\$1=\"\") or ([:len \$1] > 1) or ([:typeof \$1] = \"nothing\")) do={:return -1}; :return [:find \$2 \$1 -1]}\
+	\n\
+	\n    # RFC 4648 base64 Standard\
+	\n    :local arrb64 [:toarray \"A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T,U,V,W,X,Y,Z\\\
+	\n                            ,a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,w,x,y,z\\\
+	\n                            ,0,1,2,3,4,5,6,7,8,9,+,/,=\"]\
+	\n    :if (\$options~\"url\") do={\
+	\n        # RFC 4648 base64url URL and filename-safe standard\
+	\n        :set arrb64 [:toarray \"A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T,U,V,W,X,Y,Z\\\
+	\n                              ,a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,w,x,y,z\\\
+	\n                              ,0,1,2,3,4,5,6,7,8,9,-,_,=\"]\
+	\n    }\
+	\n    :if (\$options~\"nopad\") do={:set (\$arrb64->64) \"\"}\
+	\n\
+	\n    :local position 0\
+	\n    :local output   \"\" ; :local work \"\"\
+	\n    :local v1 \"\" ; :local v2 \"\" ; :local v3 \"\" ; :local f6bit 0 ; :local s6bit 0 ; :local t6bit 0 ; :local q6bit 0\
+	\n    :while (\$position < [:len \$input]) do={\
+	\n        :set work [:pick \$input \$position (\$position + 3)]\
+	\n        :set v1 [\$chr2int [:pick \$work 0 1] \$charsString]\
+	\n        :set v2 [\$chr2int [:pick \$work 1 2] \$charsString]\
+	\n        :set v3 [\$chr2int [:pick \$work 2 3] \$charsString]\
+	\n        :set f6bit   (\$v1 >> 2)\
+	\n        :set s6bit (((\$v1 &  3) * 16) + (\$v2 >> 4))\
+	\n        :set t6bit (((\$v2 & 15) *  4) + (\$v3 >> 6))\
+	\n        :set q6bit   (\$v3 & 63)\
+	\n        :if ([:len \$work] < 2) do={ :set t6bit 64}\
+	\n        :if ([:len \$work] < 3) do={ :set q6bit 64}\
+	\n        :set output   \"\$output\$(\$arrb64->\$f6bit)\$(\$arrb64->\$s6bit)\$(\$arrb64->\$t6bit)\$(\$arrb64->\$q6bit)\"\
+	\n        :set position (\$position + 3)\
+	\n    }\
+	\n    :return \$output\
+	\n}\
+	\n\
+	\n:local verHistory [\$str2base64 [:tostr [:pick [/system history print as-value] 1]]]\
 	\n:local verCertificate [:tostr [/certificate find]]\
 	\n:local verFile [:tostr [/file find name~\"^[^H][^A][^_]\"]]\
 	\n:local haVer \"history=\$verHistory file=\$verFile certificate=\$verCertificate\"\
@@ -370,7 +436,7 @@ add name=ha_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n/log warning \"ha_startup: 0.3\"\
 	\n#Finally take care about all ethernet interfaces\
 	\n/interface ethernet disable [find disabled=no]\
-	\n:global haStartupHAVersion \"0.7test15 - 7a36ae066ee95b1d83b75577f98bce7afb8fb40d\"\
+	\n:global haStartupHAVersion \"0.9devV7-20231101 - b665d9fc06f812804b107cfc60e9ddf32d6b8ba7\"\
 	\n:global isStandbyInSync false\
 	\n:global isMaster false\
 	\n:global haPassword\
@@ -508,11 +574,22 @@ add name=ha_startup_new owner=admin policy=ftp,reboot,read,write,policy,test,pas
 	\n#Still need this - things like DHCP leases dont cause a system config change, we want to backup periodically.\
 	\n/system scheduler add comment=HA_AUTO interval=24h name=ha_auto_pushbackup on-event=ha_pushbackup policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive start-date=Jan/01/1970 start-time=05:00:00\
 	\n/log warning \"ha_startup: 7\"\
+	\n/log warning \"ha_startup: 7.1\"\
 	\n:if ([:len [/file find name=\"HA_dsa\"]] = 1) do={\
-	\n   /ip ssh import-host-key private-key-file=HA_rsa\
+	\n   /ip ssh import-host-key private-key-file=HA_dsa\
 	\n}\
+	\n/log warning \"ha_startup: 7.2\"\
 	\n:if ([:len [/file find name=\"HA_rsa\"]] = 1) do={\
 	\n   /ip ssh import-host-key private-key-file=HA_rsa\
+	\n}\
+	\n# bugfix v7\
+	\n/log warning \"ha_startup: 7.3\"\
+	\n:if ([:len [/file find name=\"HA_dsa.pem\"]] = 1) do={\
+	\n   /ip ssh import-host-key private-key-file=HA_dsa.pem\
+	\n}\
+	\n/log warning \"ha_startup: 7.4\"\
+	\n:if ([:len [/file find name=\"HA_rsa.pem\"]] = 1) do={\
+	\n   /ip ssh import-host-key private-key-file=HA_rsa.pem\
 	\n}\
 	\n/user remove [find comment=HA_AUTO]\
 	\n/user add address=\"\$haNetwork/\$haNetmaskBits\" comment=HA_AUTO group=full name=ha password=\"\$haPassword\"\
@@ -581,18 +658,35 @@ add name=ha_switchrole_new owner=admin policy=ftp,reboot,read,write,policy,test,
 	\n   /system script run [find name=\"ha_pushbackup\"]\
 	\n   :delay 5\
 	\n   :local haWaitCount 0\
-	\n   while ([/ping \$haAddressOther count=1 interface=\$haPingInterface ttl=1]  = 0) do={\
-	\n      :set haWaitCount (\$haWaitCount+1)\
-	\n      :put \"Still waiting for standby \$haWaitCount...\"\
-	\n      :delay 1\
+	\n   if ([:pick [/system resource get version] 0 ] = 6) do={\
+	\n      while ([/ping \$haAddressOther count=1 interface=\$haPingInterface ttl=1] = 0) do={\
+	\n         :set haWaitCount (\$haWaitCount+1)\
+	\n         :put \"Still waiting for standby \$haWaitCount...\"\
+	\n         :delay 1\
+	\n      }\
+	\n      :put \"Standby available \$haWaitCount...delaying 22s\"\
+	\n      /delay 22\
+	\n      :if (\$isMaster && [/ping \$haAddressOther count=1 interface=\$haPingInterface ttl=1] >= 1) do={\
+	\n         :put \"REBOOTING MYSELF\"\
+	\n         :execute \"/system reboot\"\
+	\n      } else={\
+	\n         :put \"NOT REBOOTING MYSELF! SLAVE IS NOT UP OR I AM NOT MASTER!\"\
+	\n      }\
 	\n   }\
-	\n   :put \"Standby available \$haWaitCount...delaying 10s\"\
-	\n   /delay 10\
-	\n   :if (\$isMaster && [/ping \$haAddressOther count=1 interface=\$haPingInterface ttl=1]  >= 1) do={\
-	\n      :put \"REBOOTING MYSELF\"\
-	\n      :execute \"/system reboot\"\
-	\n   } else={\
-	\n      :put \"NOT REBOOTING MYSELF! SLAVE IS NOT UP OR I AM NOT MASTER!\"\
+	\n   if ([:pick [/system resource get version] 0 ] = 7) do={\
+	\n      while (([/ping \$haAddressOther count=1 interface=\$haPingInterface ttl=1 as-value ]->\"time\") = nil ) do={\
+	\n         :set haWaitCount (\$haWaitCount+1)\
+	\n         :put \"Still waiting for standby \$haWaitCount...\"\
+	\n         :delay 1\
+	\n      }\
+	\n      :put \"Standby available \$haWaitCount...delaying 22s\"\
+	\n      /delay 22\
+	\n      :if (\$isMaster && (([/ping \$haAddressOther count=1 interface=\$haPingInterface ttl=1 as-value ]->\"time\") > 0 ) ) do={\
+	\n         :put \"REBOOTING MYSELF\"\
+	\n         :execute \"/system reboot\"\
+	\n      } else={\
+	\n         :put \"NOT REBOOTING MYSELF! SLAVE IS NOT UP OR I AM NOT MASTER!\"\
+	\n      }\
 	\n   }\
 	\n} else={\
 	\n   :put \"I am NOT master - nothing to do\"\
