@@ -18,7 +18,8 @@
    :set mkdirCode "$mkdirCode\r\n/ip smb shares remove [find comment=HA_AUTO]\r\n"
    #eh - good chance to keep files in sync, just delete everything, we will reupload. is this going to reduce life of nvram?
    :local purgeFilesCode ":foreach k in=[/file find type!=\"directory\"] do={ :local xferfile [/file get \$k name]; if ([:pick \"\$xferfile\" 0 3] != \"HA_\") do={ :put \"removing \$xferfile\"; /file remove \$k; } }"
-   :set mkdirCode "$purgeFilesCode;\r\n/delay 2;\r\n$mkdirCode"
+   :local purgeKeys "/file remove [find name=\"HA_dsa\" or name=\"HA_rsa\" or name=\"HA_rsa.pem\" or name=\"HA_rsa.pem\"]"
+   :set mkdirCode "$purgeKeys;$purgeFilesCode;\r\n/delay 2;\r\n$mkdirCode"
 
    /file print file=HA_mkdirs.txt
    /file set [find name="HA_mkdirs.txt"] contents=$mkdirCode
@@ -37,23 +38,23 @@
       }
    }
 
-   :if ([:len [/file find name=HA_dsa]] <= 0) do={ 
-      /ip ssh export-host-key key-file-prefix="HA"
-   }
+   #Always export so we don't need to figure out versions.
+   /file remove [find name="HA_dsa" or name="HA_rsa" or name="HA_rsa.pem" or name="HA_rsa.pem"]
+   /ip ssh export-host-key key-file-prefix="HA"
 
-:if ([:len [/file find name="HA_dsa"]] = 1) do={
-   /tool fetch upload=yes src-path=HA_dsa dst-path=HA_dsa address=$haAddressOther user=ha password=$haPassword mode=ftp
-}
-:if ([:len [/file find name="HA_rsa"]] = 1) do={
-   /tool fetch upload=yes src-path=HA_rsa dst-path=HA_rsa address=$haAddressOther user=ha password=$haPassword mode=ftp
-}
-# bugfix v7
-:if ([:len [/file find name="HA_dsa.pem"]] = 1) do={
-   /tool fetch upload=yes src-path=HA_dsa.pem dst-path=HA_dsa.pem address=$haAddressOther user=ha password=$haPassword mode=ftp
-}
-:if ([:len [/file find name="HA_rsa.pem"]] = 1) do={
-   /tool fetch upload=yes src-path=HA_rsa.pem dst-path=HA_rsa.pem address=$haAddressOther user=ha password=$haPassword mode=ftp
-}
+   :if ([:len [/file find name="HA_dsa"]] = 1) do={
+      /tool fetch upload=yes src-path=HA_dsa dst-path=HA_dsa address=$haAddressOther user=ha password=$haPassword mode=ftp
+   }
+   :if ([:len [/file find name="HA_rsa"]] = 1) do={
+      /tool fetch upload=yes src-path=HA_rsa dst-path=HA_rsa address=$haAddressOther user=ha password=$haPassword mode=ftp
+   }
+   # bugfix v7
+   :if ([:len [/file find name="HA_dsa.pem"]] = 1) do={
+      /tool fetch upload=yes src-path=HA_dsa.pem dst-path=HA_dsa.pem address=$haAddressOther user=ha password=$haPassword mode=ftp
+   }
+   :if ([:len [/file find name="HA_rsa.pem"]] = 1) do={
+      /tool fetch upload=yes src-path=HA_rsa.pem dst-path=HA_rsa.pem address=$haAddressOther user=ha password=$haPassword mode=ftp
+   }
 
    :global haMasterConfigVer
    [/system script run [find name="ha_setconfigver"]]
