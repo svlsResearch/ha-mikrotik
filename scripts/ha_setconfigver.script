@@ -1,4 +1,49 @@
-:local verHistory [:tostr [:pick [/system history print as-value] 1]]
+#Credit to rextended for this function: https://forum.mikrotik.com/viewtopic.php?t=194152#p988931
+:local str2base64 do={
+    :local input   [:tostr "$1"]
+    :local options "$2$3"
+
+    :local charsString ""
+    :for x from=0 to=15 step=1 do={ :for y from=0 to=15 step=1 do={
+        :local tmpHex "$[:pick "0123456789ABCDEF" $x ($x+1)]$[:pick "0123456789ABCDEF" $y ($y+1)]"
+        :set $charsString "$charsString$[[:parse "(\"\\$tmpHex\")"]]"
+    } }
+
+    :local chr2int do={:if (($1="") or ([:len $1] > 1) or ([:typeof $1] = "nothing")) do={:return -1}; :return [:find $2 $1 -1]}
+
+    # RFC 4648 base64 Standard
+    :local arrb64 [:toarray "A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T,U,V,W,X,Y,Z\
+                            ,a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,w,x,y,z\
+                            ,0,1,2,3,4,5,6,7,8,9,+,/,="]
+    :if ($options~"url") do={
+        # RFC 4648 base64url URL and filename-safe standard
+        :set arrb64 [:toarray "A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T,U,V,W,X,Y,Z\
+                              ,a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,w,x,y,z\
+                              ,0,1,2,3,4,5,6,7,8,9,-,_,="]
+    }
+    :if ($options~"nopad") do={:set ($arrb64->64) ""}
+
+    :local position 0
+    :local output   "" ; :local work ""
+    :local v1 "" ; :local v2 "" ; :local v3 "" ; :local f6bit 0 ; :local s6bit 0 ; :local t6bit 0 ; :local q6bit 0
+    :while ($position < [:len $input]) do={
+        :set work [:pick $input $position ($position + 3)]
+        :set v1 [$chr2int [:pick $work 0 1] $charsString]
+        :set v2 [$chr2int [:pick $work 1 2] $charsString]
+        :set v3 [$chr2int [:pick $work 2 3] $charsString]
+        :set f6bit   ($v1 >> 2)
+        :set s6bit ((($v1 &  3) * 16) + ($v2 >> 4))
+        :set t6bit ((($v2 & 15) *  4) + ($v3 >> 6))
+        :set q6bit   ($v3 & 63)
+        :if ([:len $work] < 2) do={ :set t6bit 64}
+        :if ([:len $work] < 3) do={ :set q6bit 64}
+        :set output   "$output$($arrb64->$f6bit)$($arrb64->$s6bit)$($arrb64->$t6bit)$($arrb64->$q6bit)"
+        :set position ($position + 3)
+    }
+    :return $output
+}
+
+:local verHistory [$str2base64 [:tostr [:pick [/system history print as-value] 1]]]
 :local verCertificate [:tostr [/certificate find]]
 :local verFile [:tostr [/file find name~"^[^H][^A][^_]"]]
 :local haVer "history=$verHistory file=$verFile certificate=$verCertificate"
